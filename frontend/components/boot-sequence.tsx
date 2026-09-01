@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 const LINES = [
   "SYSTEM INITIALIZING...",
@@ -14,22 +14,36 @@ const LINE_DELAY_MS = 300; // gap between lines appearing
 const HOLD_MS = 600; // pause after the last line before fading out
 const FADE_MS = 300; // css transition duration, kept in sync with the class below
 
+const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+function subscribeReducedMotion(onStoreChange: () => void) {
+  const media = window.matchMedia(REDUCED_MOTION_QUERY);
+  media.addEventListener("change", onStoreChange);
+  return () => media.removeEventListener("change", onStoreChange);
+}
+
+function getReducedMotionSnapshot() {
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
+function getReducedMotionServerSnapshot() {
+  return false;
+}
+
 export function BootSequence() {
-  // null = still deciding (avoids a flash on reduced-motion / no-JS-timing
-  // edge cases); true = overlay visible; false = dismissed.
-  const [visible, setVisible] = useState<boolean | null>(null);
+  const reduceMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    getReducedMotionSnapshot,
+    getReducedMotionServerSnapshot,
+  );
+  const [dismissed, setDismissed] = useState(false);
   const [lineCount, setLineCount] = useState(0);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
-    const reduceMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
     if (reduceMotion) {
-      setVisible(false);
       return;
     }
-    setVisible(true);
 
     const timers: ReturnType<typeof setTimeout>[] = [];
     LINES.forEach((_, i) => {
@@ -40,17 +54,17 @@ export function BootSequence() {
     const totalReveal = LINES.length * LINE_DELAY_MS;
     timers.push(setTimeout(() => setFading(true), totalReveal + HOLD_MS));
     timers.push(
-      setTimeout(() => setVisible(false), totalReveal + HOLD_MS + FADE_MS)
+      setTimeout(() => setDismissed(true), totalReveal + HOLD_MS + FADE_MS)
     );
 
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [reduceMotion]);
 
   function skip() {
-    setVisible(false);
+    setDismissed(true);
   }
 
-  if (visible === null || visible === false) return null;
+  if (reduceMotion || dismissed) return null;
 
   return (
     <div

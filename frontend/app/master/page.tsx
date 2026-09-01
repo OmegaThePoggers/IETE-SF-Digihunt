@@ -52,17 +52,19 @@ export default function MasterPage() {
   const [shake, setShake] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const fetchStatus = useCallback(async () => {
-    try {
-      const data = await getMasterStatus();
-      setStatus(data);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        router.replace("/login");
-        return;
-      }
-      setError(err instanceof ApiError ? err.message : "Failed to load system status.");
-    }
+  const fetchStatus = useCallback(() => {
+    getMasterStatus()
+      .then((data) => {
+        setStatus(data);
+        setError(null);
+      })
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        setError(err instanceof ApiError ? err.message : "Failed to load system status.");
+      });
   }, [router]);
 
   useEffect(() => {

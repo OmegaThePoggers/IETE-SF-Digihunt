@@ -16,7 +16,10 @@ const RECONNECT_MS = 2000;
 // LAN, no need for exponential backoff/jitter here.
 export function useTeamSocket(onEvent: (event: TeamSocketEvent) => void) {
   const onEventRef = useRef(onEvent);
-  onEventRef.current = onEvent;
+
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
 
   useEffect(() => {
     const token = getStoredToken();
