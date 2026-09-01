@@ -7,6 +7,7 @@ import { PreviewToolbar } from "@/components/dev/preview-toolbar";
 import {
   devPreviewsEnabled,
   resolvePreviewState,
+  toDevPreviewHref,
 } from "@/lib/dev-preview";
 
 describe("development preview helpers", () => {
@@ -18,6 +19,11 @@ describe("development preview helpers", () => {
 
   it("enables previews for the exact true value", () => {
     expect(devPreviewsEnabled("true")).toBe(true);
+    expect(devPreviewsEnabled("true ")).toBe(true);
+  });
+
+  it("keeps previews disabled during production deployment", () => {
+    expect(devPreviewsEnabled("true", "production")).toBe(false);
   });
 
   it("resolves a known state from a finite state list", () => {
@@ -30,6 +36,15 @@ describe("development preview helpers", () => {
     const states = ["locked", "active", "completed"] as const;
     expect(resolvePreviewState("corrupted", states, "active")).toBe("active");
     expect(resolvePreviewState(undefined, states, "active")).toBe("active");
+  });
+
+  it("remaps production navigation into unlocked synthetic preview routes", () => {
+    expect(toDevPreviewHref("/dashboard")).toBe("/dev/preview/dashboard");
+    expect(toDevPreviewHref("/round1")).toBe("/dev/preview/round1?state=unlocked");
+    expect(toDevPreviewHref("/round2")).toBe("/dev/preview/round2?state=unlocked");
+    expect(toDevPreviewHref("/master")).toBe("/dev/preview/master?state=ready");
+    expect(toDevPreviewHref("/round3")).toBe("/dev/preview/round3?state=submitted");
+    expect(toDevPreviewHref("/unknown")).toBe("/dev/preview");
   });
 });
 
@@ -72,6 +87,41 @@ describe("dashboard preview source", () => {
   it("uses dashboard fixtures without importing the API module", () => {
     expect(source).toContain("dashboard-fixtures");
     expect(source).toContain("DashboardView");
+    expect(source).toContain("toDevPreviewHref");
+    expect(source).not.toMatch(/window\.alert/);
     expect(source).not.toMatch(/(?:@\/lib\/api|lib\/api)/);
+  });
+});
+
+describe("phase preview source", () => {
+  const round1 = readFileSync(resolve(process.cwd(), "app/dev/preview/round1/page.tsx"), "utf8");
+  const round2 = readFileSync(resolve(process.cwd(), "app/dev/preview/round2/page.tsx"), "utf8");
+  const master = readFileSync(resolve(process.cwd(), "app/dev/preview/master/page.tsx"), "utf8");
+  const round3 = readFileSync(resolve(process.cwd(), "app/dev/preview/round3/page.tsx"), "utf8");
+
+  it("offers an unlocked Round 1 fixture and local click-through callbacks", () => {
+    expect(round1).toContain('"unlocked"');
+    expect(round1).toContain("key={state}");
+    expect(round1).toContain("setModel");
+    expect(round1).toContain("toDevPreviewHref");
+    expect(round1).not.toMatch(/(?:@\/lib\/api|lib\/api)/);
+  });
+
+  it("offers an unlocked Round 2 fixture and local click-through callbacks", () => {
+    expect(round2).toContain('"unlocked"');
+    expect(round2).toContain("key={state}");
+    expect(round2).toContain("setModel");
+    expect(round2).toContain("toDevPreviewHref");
+    expect(round2).not.toMatch(/(?:@\/lib\/api|lib\/api)/);
+  });
+
+  it("keeps linked Master and Round 3 preview pages synthetic and clickable", () => {
+    for (const source of [master, round3]) {
+      expect(source).toMatch(/synthetic fixture/i);
+      expect(source).toContain("key={state}");
+      expect(source).toContain("PreviewToolbar");
+      expect(source).toContain("toDevPreviewHref");
+      expect(source).not.toMatch(/(?:@\/lib\/api|lib\/api)/);
+    }
   });
 });
