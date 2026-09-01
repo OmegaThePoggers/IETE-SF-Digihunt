@@ -1,0 +1,21 @@
+[project]
+name = "digihunt-backend"
+version = "0.1.0"
+description = "FastAPI backend for the DigiHunt event platform"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic",
+    "argon2-cffi",
+    "email-validator",
+    "fastapi",
+    "psycopg[binary]",
+    "pydantic",
+    "pydantic-settings",
+    "pyjwt",
+    "python-multipart",
+    "sqlalchemy>=2.0",
+    "uvicorn[standard]",
+]
+
+[tool.uv]
+package = false
