@@ -25,6 +25,8 @@ The consistency risk is controlled by shared tokens, primitives, shells, and pre
 
 `theming.png` is authoritative for the core identity:
 
+![Authoritative frontend theme identity reference](../../../theming.png)
+
 - KH Interference is the principal display face.
 - Acid lime is exactly `#C8FF00` for identity-critical accents.
 - Near-black is the dominant field.
