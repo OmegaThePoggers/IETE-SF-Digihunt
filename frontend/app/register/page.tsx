@@ -1,201 +1,52 @@
 "use client";
 
 import { useState } from "react";
+
+import { RegisterForm, type RegistrationPayload } from "@/components/auth/register-form";
+import { AccessShell } from "@/components/event/access-shell";
+import { EventPanel } from "@/components/event/event-panel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiError, registerTeam } from "@/lib/api";
 
-const EMPTY_MEMBER = { name: "", email: "", password: "" };
-
-const inputClass =
-  "w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground font-mono-data outline-none focus:ring-2 focus:ring-ring";
-
 export default function RegisterPage() {
-  const [teamName, setTeamName] = useState("");
-  const [members, setMembers] = useState([
-    { ...EMPTY_MEMBER },
-    { ...EMPTY_MEMBER },
-    { ...EMPTY_MEMBER },
-  ]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ team_code: string } | null>(null);
+  const [teamCode, setTeamCode] = useState<string | null>(null);
 
-  function updateMember(i: number, field: keyof typeof EMPTY_MEMBER, value: string) {
-    setMembers((prev) =>
-      prev.map((m, idx) => (idx === i ? { ...m, [field]: value } : m))
-    );
-  }
-
-  function validate(): string | null {
-    if (!teamName.trim()) return "Team name is required.";
-    const emails = members.map((m) => m.email.trim().toLowerCase());
-    if (members.some((m) => !m.name.trim() || !m.email.trim() || !m.password))
-      return "All 3 members need a name, email, and password.";
-    if (members.some((m) => m.password.length < 8))
-      return "Passwords must be at least 8 characters.";
-    if (new Set(emails).size !== emails.length)
-      return "Member emails must be unique.";
-    return null;
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleRegister(payload: RegistrationPayload) {
     setError(null);
-
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
     setSubmitting(true);
     try {
-      const res = await registerTeam({ team_name: teamName.trim(), members });
-      setResult({ team_code: res.team_code });
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Registration failed.");
+      const result = await registerTeam(payload);
+      setTeamCode(result.team_code);
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "Registration failed.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (result) {
+  if (teamCode) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-6 py-20">
-        <Card className="glow-border w-full max-w-md text-center">
-          <CardHeader>
-            <CardTitle className="glow-cyan font-mono-data text-2xl text-primary">
-              TEAM CREATED
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Your team code — keep it safe, you&apos;ll want it later:
-            </p>
-            <p className="font-mono-data text-3xl font-bold tracking-widest text-secondary">
-              {result.team_code}
-            </p>
-            <Button
-              size="lg"
-              className="glow-border font-mono-data"
-              render={<a href="/login" />}
-              nativeButton={false}
-            >
-              GO TO LOGIN
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
+      <AccessShell mode="register" workspaceLabel="Team registration result">
+        <p className="font-mono-data text-xs uppercase tracking-[0.24em] text-primary">04 // Signal acquired</p>
+        <h1 className="mt-4 text-4xl font-black uppercase leading-none tracking-[-0.04em] sm:text-6xl">Team created.</h1>
+        <EventPanel variant="emphasis" className="mt-10">
+          <p className="font-mono-data text-xs uppercase tracking-[0.18em] text-muted-foreground">Team code // Keep secure</p>
+          <p className="glow-lime my-6 font-mono-data text-4xl font-black tracking-[0.16em] text-primary sm:text-6xl">{teamCode}</p>
+          <Button size="lg" className="font-mono-data" render={<a href="/login" />} nativeButton={false}>Go to login</Button>
+        </EventPanel>
+      </AccessShell>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center px-6 py-16">
-      <div className="w-full max-w-2xl space-y-8">
-        <div className="text-center">
-          <h1 className="glow-cyan font-mono-data text-3xl font-bold text-primary">
-            DIGIHUNT // TEAM REGISTRATION
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Exactly 3 members. Each gets their own login.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card className="glow-border">
-            <CardContent className="space-y-2 pt-6">
-              <label
-                htmlFor="team-name"
-                className="font-mono-data text-xs uppercase tracking-wide text-secondary"
-              >
-                Team Name
-              </label>
-              <input
-                id="team-name"
-                className={inputClass}
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                placeholder="e.g. Null Pointers"
-              />
-            </CardContent>
-          </Card>
-
-          {members.map((member, i) => (
-            <Card key={i} className="glow-border">
-              <CardHeader>
-                <CardTitle className="font-mono-data text-sm text-secondary">
-                  MEMBER {i + 1}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-3 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <label
-                    htmlFor={`member-${i}-name`}
-                    className="font-mono-data text-xs uppercase tracking-wide text-muted-foreground"
-                  >
-                    Name
-                  </label>
-                  <input
-                    id={`member-${i}-name`}
-                    className={inputClass}
-                    placeholder="Name"
-                    value={member.name}
-                    onChange={(e) => updateMember(i, "name", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label
-                    htmlFor={`member-${i}-email`}
-                    className="font-mono-data text-xs uppercase tracking-wide text-muted-foreground"
-                  >
-                    Email
-                  </label>
-                  <input
-                    id={`member-${i}-email`}
-                    className={inputClass}
-                    placeholder="Email"
-                    type="email"
-                    value={member.email}
-                    onChange={(e) => updateMember(i, "email", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label
-                    htmlFor={`member-${i}-password`}
-                    className="font-mono-data text-xs uppercase tracking-wide text-muted-foreground"
-                  >
-                    Password
-                  </label>
-                  <input
-                    id={`member-${i}-password`}
-                    className={inputClass}
-                    placeholder="Password (min 8 chars)"
-                    type="password"
-                    value={member.password}
-                    onChange={(e) => updateMember(i, "password", e.target.value)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {error && (
-            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono-data text-sm text-destructive">
-              {error}
-            </p>
-          )}
-
-          <Button
-            type="submit"
-            size="lg"
-            className="glow-border w-full font-mono-data"
-            disabled={submitting}
-          >
-            {submitting ? "REGISTERING..." : "REGISTER TEAM"}
-          </Button>
-        </form>
-      </div>
-    </main>
+    <AccessShell mode="register" workspaceLabel="Team registration workspace">
+      <p className="font-mono-data text-xs uppercase tracking-[0.24em] text-primary">02 // Team registration</p>
+      <h1 className="mt-4 text-4xl font-black uppercase leading-none tracking-[-0.04em] sm:text-6xl">Build your unit.</h1>
+      <p className="mb-8 mt-4 max-w-xl text-sm leading-6 text-muted-foreground">Exactly three members enter the hunt. Each competitor receives an individual login under one shared team signal.</p>
+      <RegisterForm error={error} submitting={submitting} onSubmit={handleRegister} onValidationError={setError} />
+      <p className="mt-6 font-mono-data text-xs text-muted-foreground">Already registered? <a href="/login" className="text-primary underline-offset-4 hover:underline">Return to login</a></p>
+    </AccessShell>
   );
 }
