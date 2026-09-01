@@ -22,16 +22,47 @@ npm run dev
 
 ## Run — Backend
 
+Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) first, then:
+
 ```bash
 cd backend
-python -m venv venv
-venv\Scripts\activate          # Windows
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+cp .env.example .env
+uv sync --locked
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Copy `backend/.env.example` to `backend/.env` and fill in `DATABASE_URL` / `JWT_SECRET` before running.
+Fill in `DATABASE_URL` and `JWT_SECRET` in `.env` before running the migration or server.
+
+### Backend dependencies
+
+Run dependency management commands from `backend/`:
+
+```bash
+uv add <package>             # add a runtime dependency and update uv.lock
+uv remove <package>          # remove a dependency and update uv.lock
+uv lock --upgrade            # upgrade all dependencies within project constraints
+uv sync --locked             # reproduce the committed environment exactly
+```
+
+Commit both `pyproject.toml` and `uv.lock` whenever dependencies change.
+
+### Backend hosting
+
+Use these commands from `backend/` in a hosting provider's release workflow:
+
+```bash
+# Build
+uv sync --locked --no-dev
+
+# Release phase, once per deployment
+uv run --no-sync alembic upgrade head
+
+# Start
+uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port "$PORT"
+```
+
+Run migrations once in the release phase, not in every application process. `uv` makes dependency resolution and environment builds faster and reproducible; it does not make the running FastAPI application itself faster.
 
 ## Status
 
@@ -43,7 +74,7 @@ end-to-end.
 
 ```bash
 cd backend
-venv/Scripts/python -m app.seed        # Windows; venv/bin/python on macOS/Linux
+uv run python -m app.seed
 ```
 
 Idempotent — safe to re-run. Creates 3 demo teams (one full playthrough, one
