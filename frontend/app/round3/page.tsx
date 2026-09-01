@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   ApiError,
@@ -17,7 +16,7 @@ import {
 } from "@/lib/api";
 
 // Spec §28 — required presentation structure, shown as a persistent
-// reference throughout the round, not just once.
+// reference in the left pane throughout the round, not just once.
 const STRUCTURE = [
   "Problem",
   "Investigation findings",
@@ -114,7 +113,7 @@ export default function Round3Page() {
 
   if (locked) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
         <p className="glow-cyan font-mono-data text-xl font-bold text-primary">
           ROUND LOCKED
         </p>
@@ -134,8 +133,8 @@ export default function Round3Page() {
 
   if (error) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-6">
-        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono-data text-sm text-destructive">
+      <main className="flex min-h-screen items-center justify-center bg-background px-6">
+        <p className="border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono-data text-sm text-destructive">
           {error}
         </p>
       </main>
@@ -144,7 +143,7 @@ export default function Round3Page() {
 
   if (!caseFile) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-6">
+      <main className="flex min-h-screen items-center justify-center bg-background px-6">
         <p className="font-mono-data text-sm text-muted-foreground">
           LOADING CASE FILE...
         </p>
@@ -153,66 +152,69 @@ export default function Round3Page() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-6 py-16">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="glow-cyan font-mono-data text-2xl font-bold text-primary sm:text-3xl">
-          ROUND 3 // THE FINAL HACK
+    <main className="flex min-h-screen flex-col bg-background">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-5 sm:px-8">
+        <h1 className="glow-cyan font-mono-data text-lg font-bold tracking-widest text-primary uppercase sm:text-xl">
+          Round 3 // The Final Hack
         </h1>
-        <Button
-          variant="outline"
-          className="font-mono-data"
-          onClick={() => router.push("/dashboard")}
-        >
-          MISSION CONTROL
-        </Button>
+        <div className="flex items-center gap-4">
+          <span className="font-mono-data text-xs tracking-widest text-muted-foreground">
+            CASE {caseFile.case_number} · {caseFile.title.toUpperCase()}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="font-mono-data"
+            onClick={() => router.push("/dashboard")}
+          >
+            MISSION CONTROL
+          </Button>
+        </div>
       </div>
 
-      <Card className="glow-border border-primary">
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle className="glow-cyan font-mono-data text-lg text-primary">
-              CASE {caseFile.case_number} · {caseFile.title.toUpperCase()}
-            </CardTitle>
-            <Badge className="font-mono-data">ASSIGNED</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="font-mono-data text-sm text-foreground">
-            {caseFile.description}
+      <div className="grid flex-1 grid-cols-1 lg:grid-cols-[320px_1fr]">
+        {/* LEFT — passive reference: case brief + required structure */}
+        <div className="border-b border-border p-6 lg:border-r lg:border-b-0 sm:p-8">
+          <p className="mb-3.5 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
+            Reference — read once
           </p>
-          {caseFile.evidence && Object.keys(caseFile.evidence).length > 0 && (
-            <pre className="overflow-x-auto whitespace-pre-wrap rounded-md border border-border bg-black/40 p-3 font-mono-data text-xs text-secondary">
-              {JSON.stringify(caseFile.evidence, null, 2)}
-            </pre>
-          )}
-        </CardContent>
-      </Card>
 
-      <Card className="glow-border">
-        <CardHeader>
-          <CardTitle className="font-mono-data text-sm text-secondary">
-            REQUIRED PRESENTATION STRUCTURE
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol className="grid gap-2 font-mono-data text-sm text-foreground sm:grid-cols-2">
+          <div className="mb-6 border border-border bg-black/20 p-4">
+            <p className="mb-2 font-mono-data text-[10px] tracking-widest text-primary uppercase">
+              Case brief
+            </p>
+            <p className="font-mono-data text-xs leading-relaxed text-foreground/90">
+              {caseFile.description}
+            </p>
+            {caseFile.evidence && Object.keys(caseFile.evidence).length > 0 && (
+              <pre className="mt-3 overflow-x-auto whitespace-pre-wrap border-t border-border pt-3 font-mono-data text-[10px] text-secondary">
+                {JSON.stringify(caseFile.evidence, null, 2)}
+              </pre>
+            )}
+          </div>
+
+          <p className="mb-2.5 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
+            Required structure
+          </p>
+          <div className="border-t border-border">
             {STRUCTURE.map((step, i) => (
-              <li key={step} className="flex gap-2">
-                <span className="text-primary">{String(i + 1).padStart(2, "0")}.</span>
+              <div
+                key={step}
+                className="flex gap-2.5 border-b border-border py-2 font-mono-data text-xs text-foreground/90"
+              >
+                <span className="text-primary">{String(i + 1).padStart(2, "0")}</span>
                 {step}
-              </li>
+              </div>
             ))}
-          </ol>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
 
-      <Card className="glow-border">
-        <CardHeader>
-          <CardTitle className="font-mono-data text-sm text-secondary">
-            SUBMIT YOUR DECK
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        {/* RIGHT — the active task: upload, current submission, history */}
+        <div className="p-6 sm:p-8">
+          <p className="mb-3.5 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
+            Submit — the action
+          </p>
+
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -220,7 +222,7 @@ export default function Round3Page() {
             }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
-            className={`flex flex-col items-center justify-center gap-3 rounded-md border-2 border-dashed px-6 py-12 text-center transition-colors ${
+            className={`mb-6 flex flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-14 text-center transition-colors ${
               dragOver ? "border-primary bg-primary/10" : "border-border"
             }`}
           >
@@ -245,17 +247,22 @@ export default function Round3Page() {
           </div>
 
           {uploadError && (
-            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 font-mono-data text-sm text-destructive">
+            <p className="mb-6 border border-destructive/40 bg-destructive/10 px-4 py-2 font-mono-data text-sm text-destructive">
               {uploadError}
             </p>
           )}
 
-          <div className="space-y-2">
-            <p className="font-mono-data text-xs uppercase tracking-wide text-muted-foreground">
-              Current Submission
+          <div className="mb-6">
+            <p className="mb-2 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
+              Current submission
             </p>
             {current ? (
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-primary/40 bg-primary/5 px-4 py-3">
+              <div
+                className="flex flex-wrap items-center justify-between gap-2 border border-primary p-4"
+                style={{
+                  background: "linear-gradient(160deg, oklch(0.92 0.29 128 / 6%), transparent 60%)",
+                }}
+              >
                 <span className="font-mono-data text-sm text-foreground">
                   {current.file_name} · v{current.version} · {formatBytes(current.file_size)}
                 </span>
@@ -269,15 +276,15 @@ export default function Round3Page() {
           </div>
 
           {history.length > 0 && (
-            <div className="space-y-2">
-              <p className="font-mono-data text-xs uppercase tracking-wide text-muted-foreground">
-                Version History
+            <div>
+              <p className="mb-2 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
+                Version history
               </p>
-              <div className="grid gap-2">
+              <div className="border-t border-border">
                 {history.map((s) => (
                   <div
                     key={s.id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border px-4 py-2 font-mono-data text-xs text-foreground"
+                    className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-2.5 font-mono-data text-xs text-foreground"
                   >
                     <span>
                       v{s.version} · {s.file_name} · {formatBytes(s.file_size)} ·{" "}
@@ -285,7 +292,7 @@ export default function Round3Page() {
                     </span>
                     <Badge
                       variant={s.is_current ? undefined : "outline"}
-                      className="font-mono-data"
+                      className="font-mono-data text-[9px]"
                     >
                       {s.is_current ? "CURRENT" : "SUPERSEDED"}
                     </Badge>
@@ -294,8 +301,8 @@ export default function Round3Page() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </main>
   );
 }

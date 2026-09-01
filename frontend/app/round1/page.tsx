@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useTeamSocket } from "@/hooks/useTeamSocket";
 import {
   ApiError,
@@ -37,18 +35,196 @@ const CATEGORY_LABEL: Record<string, string> = {
   cybersecurity: "CYBERSECURITY",
 };
 
-function StatusBadge({ status }: { status: QuestionBoardItem["status"] }) {
-  if (status === "solved") return <Badge className="font-mono-data">SOLVED</Badge>;
-  if (status === "claimed")
-    return (
-      <Badge variant="outline" className="font-mono-data text-secondary">
-        CLAIMED
-      </Badge>
-    );
+// Progress rail — one dot per question in sequence order. Filled = solved,
+// ringed = current, dim = not reached yet.
+function ProgressRail({
+  questions,
+  currentIndex,
+}: {
+  questions: QuestionBoardItem[];
+  currentIndex: number;
+}) {
   return (
-    <Badge variant="outline" className="font-mono-data">
-      AVAILABLE
-    </Badge>
+    <div className="flex items-center gap-2">
+      {questions.map((q, i) => {
+        const solved = q.status === "solved";
+        const isCurrent = i === currentIndex;
+        return (
+          <div
+            key={q.team_question_id}
+            className={`h-1.5 flex-1 ${
+              solved
+                ? "glow-lime bg-primary"
+                : isCurrent
+                  ? "bg-secondary"
+                  : "bg-muted"
+            }`}
+            title={`Clue ${i + 1}${solved ? " — solved" : isCurrent ? " — current" : " — locked"}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// Owns the claim/answer flow for exactly one clue. Keyed by team_question_id
+// from the parent, so React mounts a fresh instance (fresh local state) every
+// time the current clue changes — no manual "reset on change" effect needed.
+function ClueCard({
+  question,
+  meName,
+  index,
+  total,
+  onSolved,
+}: {
+  question: QuestionBoardItem;
+  meName: string | null;
+  index: number;
+  total: number;
+  onSolved: () => void;
+}) {
+  const [selected, setSelected] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [autoClaiming, setAutoClaiming] = useState(question.status === "available");
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ correct: boolean; message: string } | null>(
+    null
+  );
+
+  const isMine = question.status !== "available" && question.claimed_by_name === meName;
+
+  // Auto-claim this clue as soon as it becomes the current one — the
+  // sequence itself is the gate, so there's no manual "claim" button.
+  useEffect(() => {
+    if (question.status !== "available") return;
+    let cancelled = false;
+    claimQuestion(question.team_question_id)
+      .then(() => {
+        if (cancelled) return;
+        setAutoClaiming(false);
+        onSolved(); // reuse the same "refresh the board" callback
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setAutoClaiming(false);
+        setClaimError(err instanceof ApiError ? err.message : "Could not claim clue.");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Runs once per mount (i.e. once per clue, thanks to the parent's key).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleSubmit() {
+    if (!selected) return;
+    setBusy(true);
+    try {
+      const result = await answerQuestion(question.team_question_id, selected);
+      setFeedback({ correct: result.correct, message: result.message });
+      if (result.correct) onSolved();
+    } catch (err) {
+      setFeedback({
+        correct: false,
+        message: err instanceof ApiError ? err.message : "Submission failed.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRelease() {
+    setBusy(true);
+    try {
+      await releaseQuestion(question.team_question_id);
+      onSolved(); // refresh the board — a teammate can now auto-claim this clue
+    } catch (err) {
+      setFeedback({
+        correct: false,
+        message: err instanceof ApiError ? err.message : "Could not release clue.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="glow-border border border-border p-6 sm:p-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-5">
+        <span className="font-mono-data text-xs tracking-widest text-secondary uppercase">
+          Clue {index + 1} of {total} —{" "}
+          {CATEGORY_LABEL[question.category] ?? question.category.toUpperCase()}
+        </span>
+        <span className="font-mono-data text-xs text-muted-foreground uppercase">
+          {question.difficulty}
+        </span>
+      </div>
+
+      {autoClaiming || (question.status === "claimed" && !isMine) ? (
+        <p className="font-mono-data text-sm text-muted-foreground">
+          {question.status === "claimed" && !isMine
+            ? `Being solved by ${question.claimed_by_name ?? "a teammate"}...`
+            : "Establishing access..."}
+        </p>
+      ) : claimError ? (
+        <p className="border border-destructive/40 bg-destructive/10 px-4 py-2.5 font-mono-data text-sm text-destructive">
+          {claimError}
+        </p>
+      ) : (
+        <div className="space-y-6">
+          <p className="font-heading text-lg font-bold text-foreground sm:text-xl">
+            {question.question_text}
+          </p>
+
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {(question.options ?? []).map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                aria-pressed={selected === opt}
+                onClick={() => setSelected(opt)}
+                className={`border px-4 py-3 text-left font-mono-data text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring ${
+                  selected === opt
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-foreground hover:border-secondary"
+                }`}
+              >
+                {selected === opt ? "▸ " : ""}
+                {opt}
+              </button>
+            ))}
+          </div>
+
+          {feedback && (
+            <p
+              className={`border px-4 py-2.5 font-mono-data text-sm ${
+                feedback.correct
+                  ? "border-primary/40 bg-primary/10 text-primary"
+                  : "border-destructive/40 bg-destructive/10 text-destructive"
+              }`}
+            >
+              {feedback.correct
+                ? `ACCESS GRANTED — ${feedback.message}`
+                : "ACCESS DENIED — Incorrect response. Try again."}
+            </p>
+          )}
+
+          <div className="flex gap-2.5">
+            <Button className="font-mono-data" disabled={busy || !selected} onClick={handleSubmit}>
+              {busy ? "SUBMITTING..." : "SUBMIT"}
+            </Button>
+            <Button
+              variant="outline"
+              className="font-mono-data"
+              disabled={busy}
+              onClick={handleRelease}
+            >
+              RELEASE
+            </Button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -57,11 +233,6 @@ export default function Round1Page() {
   const [board, setBoard] = useState<Round1BoardOut | null>(null);
   const [meName, setMeName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<Record<string, boolean>>({});
-  const [selected, setSelected] = useState<Record<string, string>>({});
-  const [feedback, setFeedback] = useState<
-    Record<string, { correct: boolean; message: string }>
-  >({});
 
   const fetchBoard = useCallback(async () => {
     try {
@@ -99,72 +270,22 @@ export default function Round1Page() {
     )
   );
 
-  async function handleClaim(id: string) {
-    setBusy((b) => ({ ...b, [id]: true }));
-    try {
-      await claimQuestion(id);
-      await fetchBoard();
-    } catch (err) {
-      setFeedback((f) => ({
-        ...f,
-        [id]: {
-          correct: false,
-          message:
-            err instanceof ApiError ? err.message : "Could not claim clue.",
-        },
-      }));
-    } finally {
-      setBusy((b) => ({ ...b, [id]: false }));
-    }
-  }
+  // Sequence is simply the array order the backend already returns.
+  // The "current" clue is the first one in that order that isn't solved yet.
+  const currentIndex = useMemo(() => {
+    if (!board) return -1;
+    const idx = board.questions.findIndex((q) => q.status !== "solved");
+    return idx === -1 ? board.questions.length : idx;
+  }, [board]);
 
-  async function handleRelease(id: string) {
-    setBusy((b) => ({ ...b, [id]: true }));
-    try {
-      await releaseQuestion(id);
-      setSelected((s) => ({ ...s, [id]: "" }));
-      await fetchBoard();
-    } catch (err) {
-      setFeedback((f) => ({
-        ...f,
-        [id]: {
-          correct: false,
-          message: err instanceof ApiError ? err.message : "Could not release clue.",
-        },
-      }));
-    } finally {
-      setBusy((b) => ({ ...b, [id]: false }));
-    }
-  }
-
-  async function handleSubmit(id: string) {
-    const answer = selected[id];
-    if (!answer) return;
-    setBusy((b) => ({ ...b, [id]: true }));
-    try {
-      const result = await answerQuestion(id, answer);
-      setFeedback((f) => ({
-        ...f,
-        [id]: { correct: result.correct, message: result.message },
-      }));
-      await fetchBoard();
-    } catch (err) {
-      setFeedback((f) => ({
-        ...f,
-        [id]: {
-          correct: false,
-          message: err instanceof ApiError ? err.message : "Submission failed.",
-        },
-      }));
-    } finally {
-      setBusy((b) => ({ ...b, [id]: false }));
-    }
-  }
+  const current = board && currentIndex < board.questions.length
+    ? board.questions[currentIndex]
+    : null;
 
   if (error) {
     return (
       <main className="flex min-h-screen items-center justify-center px-6">
-        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono-data text-sm text-destructive">
+        <p className="border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono-data text-sm text-destructive">
           {error}
         </p>
       </main>
@@ -181,11 +302,14 @@ export default function Round1Page() {
     );
   }
 
+  const total = board.questions.length;
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col gap-8 px-6 py-16">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="glow-cyan font-mono-data text-2xl font-bold text-primary sm:text-3xl">
-          ROUND 1 // THE DIGITAL TRAIL
+    <main className="flex flex-col">
+      {/* HEADER */}
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-5 py-6 sm:px-8">
+        <h1 className="glow-lime font-mono-data text-lg font-bold tracking-widest text-primary uppercase sm:text-xl">
+          Round 1 // The Digital Trail
         </h1>
         <Button
           variant="outline"
@@ -194,146 +318,78 @@ export default function Round1Page() {
         >
           MISSION CONTROL
         </Button>
-      </div>
+      </header>
 
-      {board.all_complete && (
-        <Card className="glow-border border-primary">
-          <CardHeader className="text-center">
-            <CardTitle className="glow-cyan font-mono-data text-lg text-primary">
-              CODE FRAGMENTS RECOVERED
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-2 pb-6 text-center">
-            <p className="font-mono-data text-xs uppercase tracking-wide text-muted-foreground">
+      <div className="mx-auto w-full max-w-[760px] px-5 py-10 sm:px-8">
+        {/* PROGRESS */}
+        <div className="mb-10">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-mono-data text-xs tracking-widest text-muted-foreground uppercase">
+              Clue Sequence
+            </span>
+            <span className="font-mono-data text-xs text-muted-foreground">
+              {Math.min(currentIndex, total)}/{total} SOLVED
+            </span>
+          </div>
+          <ProgressRail questions={board.questions} currentIndex={currentIndex} />
+        </div>
+
+        {board.all_complete ? (
+          <section
+            className="border border-primary p-8 text-center sm:p-12"
+            style={{ background: "linear-gradient(160deg, oklch(0.919 0.237 127.1 / 8%), transparent 60%)" }}
+          >
+            <p className="mb-3 font-mono-data text-xs tracking-widest text-primary uppercase">
+              — Code Fragments Recovered
+            </p>
+            <h2 className="mb-6 font-heading text-2xl font-bold text-foreground uppercase sm:text-3xl">
+              Trail Complete
+            </h2>
+            <p className="mb-2 font-mono-data text-[11px] tracking-widest text-muted-foreground uppercase">
               Access Key
             </p>
-            <p className="glow-cyan break-all font-mono-data text-2xl font-bold tracking-widest text-secondary">
+            <p className="glow-lime break-all font-mono-data text-2xl font-bold tracking-widest text-secondary sm:text-3xl">
               {board.access_key}
             </p>
-          </CardContent>
-        </Card>
-      )}
+          </section>
+        ) : current ? (
+          <ClueCard
+            // Keying by id forces a fresh mount (and thus fresh local state)
+            // whenever the sequence advances to a new clue.
+            key={current.team_question_id}
+            question={current}
+            meName={meName}
+            index={currentIndex}
+            total={total}
+            onSolved={fetchBoard}
+          />
+        ) : null}
 
-      <section className="grid gap-4">
-        {board.questions.map((q) => {
-          const isMine = q.status !== "available" && q.claimed_by_name === meName;
-          const fb = feedback[q.team_question_id];
-          const isBusy = !!busy[q.team_question_id];
-
-          return (
-            <Card
-              key={q.team_question_id}
-              className={q.status === "solved" ? "opacity-80" : "glow-border"}
-            >
-              <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle className="font-mono-data text-sm text-secondary">
-                    {CATEGORY_LABEL[q.category] ?? q.category.toUpperCase()}{" "}
-                    <span className="text-muted-foreground">· {q.difficulty}</span>
-                  </CardTitle>
-                  <StatusBadge status={q.status} />
+        {/* SOLVED SO FAR */}
+        {currentIndex > 0 && (
+          <section className="mt-12">
+            <span className="mb-3 block font-mono-data text-xs font-bold tracking-widest text-muted-foreground uppercase">
+              — Recovered Fragments
+            </span>
+            <div className="border-t border-border">
+              {board.questions.slice(0, currentIndex).map((q, i) => (
+                <div
+                  key={q.team_question_id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-3"
+                >
+                  <span className="font-mono-data text-xs text-muted-foreground">
+                    Clue {i + 1} — {CATEGORY_LABEL[q.category] ?? q.category.toUpperCase()}
+                    {q.claimed_by_name ? ` · solved by ${q.claimed_by_name}` : ""}
+                  </span>
+                  <span className="glow-lime font-mono-data text-xs text-primary">
+                    {q.code_fragment}
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {q.status === "solved" && (
-                  <p className="font-mono-data text-sm text-foreground">
-                    ✓ Solved by {q.claimed_by_name ?? "a teammate"} — fragment recovered:{" "}
-                    <span className="glow-cyan text-secondary">{q.code_fragment}</span>
-                  </p>
-                )}
-
-                {q.status === "claimed" && !isMine && (
-                  <p className="font-mono-data text-sm text-muted-foreground">
-                    Being solved by {q.claimed_by_name ?? "a teammate"}...
-                  </p>
-                )}
-
-                {q.status === "available" && (
-                  <Button
-                    className="font-mono-data"
-                    disabled={isBusy}
-                    onClick={() => handleClaim(q.team_question_id)}
-                  >
-                    {isBusy ? "CLAIMING..." : "CLAIM"}
-                  </Button>
-                )}
-
-                {q.status === "claimed" && isMine && (
-                  <div className="space-y-3">
-                    <p className="font-mono-data text-sm text-foreground">
-                      {q.question_text}
-                    </p>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {(q.options ?? []).map((opt) => (
-                        <button
-                          key={opt}
-                          type="button"
-                          aria-pressed={selected[q.team_question_id] === opt}
-                          onClick={() =>
-                            setSelected((s) => ({ ...s, [q.team_question_id]: opt }))
-                          }
-                          className={`rounded-md border px-3 py-2 text-left font-mono-data text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring ${
-                            selected[q.team_question_id] === opt
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border text-foreground hover:border-secondary"
-                          }`}
-                        >
-                          {selected[q.team_question_id] === opt ? "✓ " : ""}
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-
-                    {fb && (
-                      <p
-                        className={`rounded-md border px-4 py-2 font-mono-data text-sm ${
-                          fb.correct
-                            ? "border-primary/40 bg-primary/10 text-primary"
-                            : "border-destructive/40 bg-destructive/10 text-destructive"
-                        }`}
-                      >
-                        {fb.correct
-                          ? `ACCESS GRANTED — ${fb.message}`
-                          : "ACCESS DENIED — Incorrect response. Try again."}
-                      </p>
-                    )}
-
-                    <div className="flex gap-2">
-                      <Button
-                        className="font-mono-data"
-                        disabled={isBusy || !selected[q.team_question_id]}
-                        onClick={() => handleSubmit(q.team_question_id)}
-                      >
-                        {isBusy ? "SUBMITTING..." : "SUBMIT"}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="font-mono-data"
-                        disabled={isBusy}
-                        onClick={() => handleRelease(q.team_question_id)}
-                      >
-                        RELEASE
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {fb && q.status !== "claimed" && (
-                  <p
-                    className={`rounded-md border px-4 py-2 font-mono-data text-sm ${
-                      fb.correct
-                        ? "border-primary/40 bg-primary/10 text-primary"
-                        : "border-destructive/40 bg-destructive/10 text-destructive"
-                    }`}
-                  >
-                    {fb.message}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </section>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
     </main>
   );
 }
