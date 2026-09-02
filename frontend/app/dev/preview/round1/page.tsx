@@ -83,18 +83,31 @@ function Round1PreviewSurface({ state }: { state: Round1PreviewState }) {
         onBack={() => {
           router.push(toDevPreviewHref("/dashboard"));
         }}
+        onClaim={(id) => setModel((current) => {
+          const currentIndex = current.clues.findIndex((clue) => clue.id === id);
+          return {
+            ...current,
+            state: "answering",
+            currentIndex,
+            clues: current.clues.map((clue) => clue.id === id
+              ? { ...clue, status: "claimed" as const, claimedByName: current.meName }
+              : clue),
+            selectedAnswer: "",
+            feedback: { tone: "neutral", message: "Synthetic clue claimed." },
+          };
+        })}
         onSelect={(answer) => setModel((current) => ({ ...current, selectedAnswer: answer }))}
         onSubmit={() => setModel((current) => solveCurrentClue(current))}
         onRelease={() => setModel((current) => ({
           ...current,
-          state: "answering",
+          state: "available",
           clues: current.clues.map((clue, index) =>
             index === current.currentIndex
-              ? { ...clue, status: "claimed" as const, claimedByName: current.meName }
+              ? { ...clue, status: "available" as const, claimedByName: null }
               : clue,
           ),
           selectedAnswer: "",
-          feedback: { tone: "neutral", message: "Synthetic release captured; preview immediately reclaims so controls stay testable." },
+          feedback: { tone: "neutral", message: "Synthetic clue released." },
           busy: false,
         }))}
       />

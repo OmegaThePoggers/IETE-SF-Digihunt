@@ -17,6 +17,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 type Round1ViewProps = {
   model: Round1ViewModel;
   onBack: () => void;
+  onClaim: (id: string) => void;
   onSelect: (answer: string) => void;
   onSubmit: () => void;
   onRelease: () => void;
@@ -26,7 +27,7 @@ function labelCategory(clue: Round1Clue) {
   return CATEGORY_LABEL[clue.category] ?? clue.category;
 }
 
-export function Round1View({ model, onBack, onSelect, onSubmit, onRelease }: Round1ViewProps) {
+export function Round1View({ model, onBack, onClaim, onSelect, onSubmit, onRelease }: Round1ViewProps) {
   const current = model.currentIndex >= 0 ? model.clues[model.currentIndex] : null;
   const solved = model.clues.filter((clue) => clue.status === "solved").length;
   const total = model.clues.length;
@@ -37,7 +38,7 @@ export function Round1View({ model, onBack, onSelect, onSubmit, onRelease }: Rou
       <EventHeader
         eyebrow="Round 1 // The Digital Trail"
         title="Clue workspace"
-        description="Work through the sequence one clue at a time. Ownership is visible so teammates do not collide."
+        description="Click any unclaimed clue to investigate it. Ownership is visible so teammates do not collide."
         actions={<Button variant="outline" onClick={onBack}>Mission control</Button>}
       />
 
@@ -52,7 +53,17 @@ export function Round1View({ model, onBack, onSelect, onSubmit, onRelease }: Rou
               aria-label="Clue sequence"
               steps={model.clues.map((clue, index) => ({
                 id: clue.id,
-                label: `Clue ${index + 1}`,
+                label: clue.status === "available" ? (
+                  <button
+                    type="button"
+                    aria-label={`Claim clue ${index + 1}`}
+                    className="-mx-2 flex w-full items-center gap-2 px-2 py-1 text-left hover:text-primary disabled:cursor-wait"
+                    disabled={model.busy}
+                    onClick={() => onClaim(clue.id)}
+                  >
+                    Clue {index + 1} <span className="text-[10px]">Claim</span>
+                  </button>
+                ) : `Clue ${index + 1}`,
                 status: clue.status === "solved" ? "complete" : index === model.currentIndex ? "active" : "upcoming",
               }))}
             />

@@ -33,7 +33,7 @@ type ControllerState = {
   busy: boolean;
   feedback: Round1Feedback | null;
   claimingId: string | null;
-  releasedId: string | null;
+  selectedClueId: string | null;
 };
 
 type ControllerAction =
@@ -43,7 +43,7 @@ type ControllerAction =
   | { type: "busy"; busy: boolean }
   | { type: "feedback"; feedback: Round1Feedback | null }
   | { type: "claiming"; id: string | null }
-  | { type: "released"; id: string | null };
+  | { type: "selected-clue"; id: string | null };
 
 const initialState: ControllerState = {
   board: null,
@@ -52,7 +52,7 @@ const initialState: ControllerState = {
   busy: false,
   feedback: null,
   claimingId: null,
-  releasedId: null,
+  selectedClueId: null,
 };
 
 function reducer(state: ControllerState, action: ControllerAction): ControllerState {
@@ -69,13 +69,9 @@ function reducer(state: ControllerState, action: ControllerAction): ControllerSt
       return { ...state, feedback: action.feedback };
     case "claiming":
       return { ...state, claimingId: action.id };
-    case "released":
-      return { ...state, releasedId: action.id };
+    case "selected-clue":
+      return { ...state, selectedClueId: action.id, selectedAnswer: "", feedback: null };
   }
-}
-
-export function shouldAutoClaim(teamQuestionId: string, releasedId: string | null) {
-  return teamQuestionId !== releasedId;
 }
 
 function toClue(question: QuestionBoardItem): Round1Clue {
@@ -91,8 +87,12 @@ function toClue(question: QuestionBoardItem): Round1Clue {
   };
 }
 
-function currentIndex(board: Round1BoardOut | null) {
+function currentIndex(board: Round1BoardOut | null, selectedClueId: string | null) {
   if (!board) return -1;
+  const selectedIndex = board.questions.findIndex(
+    (question) => question.team_question_id === selectedClueId && question.status !== "solved",
+  );
+  if (selectedIndex >= 0) return selectedIndex;
   const index = board.questions.findIndex((question) => question.status !== "solved");
   return index === -1 ? board.questions.length : index;
 }
@@ -128,29 +128,8 @@ export default function Round1Page() {
     if (BOARD_EVENTS.has(event.type)) fetchBoard();
   }, [fetchBoard]));
 
-  const index = currentIndex(state.board);
+  const index = currentIndex(state.board, state.selectedClueId);
   const current = state.board && index < state.board.questions.length ? state.board.questions[index] : null;
-
-  useEffect(() => {
-    if (
-      !current
-      || current.status !== "available"
-      || state.claimingId === current.team_question_id
-      || !shouldAutoClaim(current.team_question_id, state.releasedId)
-    ) return;
-    let cancelled = false;
-    dispatch({ type: "claiming", id: current.team_question_id });
-    claimQuestion(current.team_question_id)
-      .then(() => {
-        if (!cancelled) fetchBoard();
-      })
-      .catch((err) => {
-        if (!cancelled) dispatch({ type: "feedback", feedback: { tone: "error", message: err instanceof ApiError ? err.message : "Could not claim clue." } });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [current, fetchBoard, state.claimingId, state.releasedId]);
 
   const model: Round1ViewModel = useMemo(() => {
     const clues = state.board?.questions.map(toClue) ?? [];
@@ -192,12 +171,24 @@ export default function Round1Page() {
     }
   }
 
+  async function handleClaim(id: string) {
+    dispatch({ type: "selected-clue", id });
+    dispatch({ type: "claiming", id });
+    try {
+      await claimQuestion(id);
+      await fetchBoard();
+    } catch (err) {
+      dispatch({ type: "feedback", feedback: { tone: "error", message: err instanceof ApiError ? err.message : "Could not claim clue." } });
+    } finally {
+      dispatch({ type: "claiming", id: null });
+    }
+  }
+
   async function handleRelease() {
     if (!current) return;
     dispatch({ type: "busy", busy: true });
     try {
       await releaseQuestion(current.team_question_id);
-      dispatch({ type: "released", id: current.team_question_id });
       fetchBoard();
     } catch (err) {
       dispatch({ type: "feedback", feedback: { tone: "error", message: err instanceof ApiError ? err.message : "Could not release clue." } });
@@ -210,6 +201,7 @@ export default function Round1Page() {
     <Round1View
       model={model}
       onBack={() => router.push("/dashboard")}
+      onClaim={handleClaim}
       onSelect={(answer) => dispatch({ type: "select", answer })}
       onSubmit={handleSubmit}
       onRelease={handleRelease}
