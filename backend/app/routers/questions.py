@@ -6,12 +6,12 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
-from app.core.deps import get_current_user, require_round_unlocked
+from app.core.deps import get_current_user
 from app.models import Attempt, EventSettings, Question, Team, TeamQuestion, User
 from app.models.enums import TeamQuestionStatus
 from app.schemas.question import AnswerIn, AnswerOut, QuestionBoardItem, RoundBoardOut
-from app.services.question_gen import assign_round1, assign_round2, compute_access_key
-from app.services.round_gate import is_round_unlocked
+from app.services.question_gen import assign_round_for
+from app.services.round_gate import MCQ_ROUNDS, is_round_unlocked
 from app.websocket.manager import broadcast_from_sync
 
 router = APIRouter(prefix="/questions", tags=["questions"])
@@ -47,17 +47,26 @@ def _get_owned_team_question(
     return tq
 
 
-@router.get("/round/1", response_model=RoundBoardOut)
-def get_round1_board(
-    user: User = Depends(_require_team), db: Session = Depends(get_db)
+@router.get("/round/{round_number}", response_model=RoundBoardOut)
+def get_round_board(
+    round_number: int,
+    user: User = Depends(_require_team),
+    db: Session = Depends(get_db),
 ):
+    if round_number not in MCQ_ROUNDS:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No MCQ board for that round")
+
     team = db.get(Team, user.team_id)
-    team_questions = assign_round1(db, team)
+    if not is_round_unlocked(db, team, round_number):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, f"Round {round_number} is locked")
+
+    team_questions = assign_round_for(db, team, round_number)
 
     members = db.scalars(select(User).where(User.team_id == user.team_id)).all()
     name_by_id = {m.id: m.name for m in members}
 
     items: list[QuestionBoardItem] = []
+    summary: dict[str, str] = {}
     all_solved = True
     for tq in team_questions:
         q = tq.question
@@ -79,61 +88,21 @@ def get_round1_board(
                 status=status_val,
                 claimed_by_name=claimed_name,
                 code_fragment=q.code_fragment if solved else None,
-                judge_approved=None,
-            )
-        )
-
-    all_complete = all_solved and bool(team_questions)
-    access_key = compute_access_key(db, team)
-
-    return RoundBoardOut(
-        questions=items, all_complete=all_complete, access_key=access_key
-    )
-
-
-@router.get("/round/2", response_model=RoundBoardOut)
-def get_round2_board(
-    user: User = Depends(require_round_unlocked(2)), db: Session = Depends(get_db)
-):
-    team = db.get(Team, user.team_id)
-    team_questions = assign_round2(db, team)
-
-    members = db.scalars(select(User).where(User.team_id == user.team_id)).all()
-    name_by_id = {m.id: m.name for m in members}
-
-    items: list[QuestionBoardItem] = []
-    summary: dict[str, str] = {}
-    all_solved = True
-    for tq in team_questions:
-        q = tq.question
-        status_val = tq.status.value
-        solved = status_val == "solved"
-        if not solved:
-            all_solved = False
-        claimed_name = name_by_id.get(tq.assigned_to) if tq.assigned_to else None
-        items.append(
-            QuestionBoardItem(
-                team_question_id=tq.id,
-                category=q.category,
-                difficulty=q.difficulty,
-                question_text=q.question_text,
-                options=q.options,
-                status=status_val,
-                claimed_by_name=claimed_name,
-                code_fragment=None,  # Round 2 has no access-key fragments
-                judge_approved=tq.judge_approved,
+                judge_approved=tq.judge_approved if round_number == 2 else None,
             )
         )
         if solved:
             summary[q.category] = q.correct_answer
 
     all_complete = all_solved and bool(team_questions)
+    is_round2 = round_number == 2
 
     return RoundBoardOut(
         questions=items,
         all_complete=all_complete,
-        investigation_complete=all_complete,
-        summary=summary if all_complete else None,
+        next_gate_round=round_number + 1 if all_complete else None,
+        investigation_complete=all_complete and is_round2,
+        summary=summary if (all_complete and is_round2) else None,
         awaiting_judge_approval=False,
     )
 
@@ -265,7 +234,7 @@ def answer_question(
         {
             "type": "question_solved",
             "team_question_id": str(team_question_id),
-            "code_fragment": question.code_fragment if question.round == 1 else None,
+            "code_fragment": question.code_fragment,
             "solved_by": user.name,
         },
     )
@@ -288,14 +257,5 @@ def answer_question(
             "total": total_count,
         },
     )
-
-    # Cheapest correct way to catch the round-unlock transition: just check
-    # post-solve state and fire whenever it's True. A redundant
-    # round_unlocked on an already-unlocked round is harmless for clients.
-    team = db.get(Team, user.team_id)
-    if is_round_unlocked(db, team, question.round + 1):
-        broadcast_from_sync(
-            user.team_id, {"type": "round_unlocked", "round": question.round + 1}
-        )
 
     return AnswerOut(correct=True, message="Correct", code_fragment=question.code_fragment)

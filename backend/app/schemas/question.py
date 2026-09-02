@@ -18,7 +18,9 @@ class QuestionBoardItem(BaseModel):
 class RoundBoardOut(BaseModel):
     questions: list[QuestionBoardItem]
     all_complete: bool
-    access_key: str | None = None  # Round 1 only
+    # Every MCQ round now ends in a cipher gate rather than displaying its
+    # key inline; the key itself is served by GET /gates/{next_gate_round}.
+    next_gate_round: int | None = None
     investigation_complete: bool = False  # Round 2 only
     summary: dict[str, str] | None = None  # Round 2 only: who/what/when/how/why
     awaiting_judge_approval: bool = False

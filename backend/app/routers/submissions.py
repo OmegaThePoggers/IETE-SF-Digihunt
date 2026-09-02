@@ -1,6 +1,6 @@
-"""Round 3 PPTX submission upload/list/download.
+"""Round 4 PPTX submission upload/list/download.
 
-EventSettings encoding convention for this router: the `round3_deadline` row's
+EventSettings encoding convention for this router: the `round4_deadline` row's
 `value` column is a JSON-encoded ISO 8601 datetime string, e.g.
 value = '"2026-09-05T18:00:00Z"' (i.e. json.dumps(iso_string)). If the key is
 absent, there is no deadline and uploads are always allowed — that's correct
@@ -22,6 +22,7 @@ from app.core.config import settings
 from app.core.db import get_db
 from app.core.deps import require_round_unlocked
 from app.models import EventSettings, Submission, Team, User
+from app.services.round_gate import UPLOAD_ROUND
 from app.schemas.submission import SubmissionOut
 from app.websocket.manager import manager
 
@@ -50,8 +51,8 @@ def _sanitize_for_filename(value: str) -> str:
     return safe or "file"
 
 
-def _get_round3_deadline(db: Session) -> datetime | None:
-    row = db.get(EventSettings, "round3_deadline")
+def _get_round4_deadline(db: Session) -> datetime | None:
+    row = db.get(EventSettings, "round4_deadline")
     if row is None:
         return None
     iso_str = json.loads(row.value)
@@ -61,7 +62,7 @@ def _get_round3_deadline(db: Session) -> datetime | None:
     return deadline
 
 
-def _require_team(user: User = Depends(require_round_unlocked(3))) -> User:
+def _require_team(user: User = Depends(require_round_unlocked(UPLOAD_ROUND))) -> User:
     return user
 
 
@@ -83,7 +84,7 @@ async def upload_submission(
     user: User = Depends(_require_team),
     db: Session = Depends(get_db),
 ):
-    deadline = _get_round3_deadline(db)
+    deadline = _get_round4_deadline(db)
     if deadline is not None and datetime.now(timezone.utc) > deadline:
         raise HTTPException(status.HTTP_423_LOCKED, "Submission deadline has passed")
 
