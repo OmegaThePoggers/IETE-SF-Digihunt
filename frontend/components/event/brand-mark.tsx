@@ -10,10 +10,10 @@ type BrandMarkProps = {
 };
 
 const sizeClasses = {
-  sm: "size-8",
-  md: "size-11",
-  lg: "size-16",
-  xl: "size-24",
+  sm: "size-10",
+  md: "size-14",
+  lg: "size-20",
+  xl: "size-32",
 } as const;
 
 function BrandMark({ size = "md", showText = true, className, textClassName }: BrandMarkProps) {
