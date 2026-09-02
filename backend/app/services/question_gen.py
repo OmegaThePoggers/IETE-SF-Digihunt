@@ -32,6 +32,14 @@ ROUND2_BLUEPRINT: list[tuple[str, int]] = [
     ("why", 1),
 ]
 
+ROUND3_BLUEPRINT: list[tuple[str, int]] = [
+    ("access_control", 2),
+    ("secure_coding", 1),
+    ("monitoring", 1),
+    ("incident_response", 1),
+    ("crypto_hygiene", 1),
+]
+
 
 def team_seed(team_code: str) -> int:
     return int(hashlib.sha256(team_code.encode()).hexdigest(), 16)
@@ -285,6 +293,154 @@ def generate_why_question(rng: random.Random) -> dict:
     return _from_bank(rng, WHY_BANK)
 
 
+# ---- Round 3: Stage 3 defense/detection/prototyping (from
+# "digi hunt final 20qs.pdf") converted into four-option MCQs ---------------
+
+ACCESS_CONTROL_BANK = [
+    {
+        "question_text": (
+            "An access engine defines VIEWER, ANALYST and ADMIN roles. "
+            "CONFIDENTIAL_REPORT is ADMIN-only. What is the correct outcome set?"
+        ),
+        "options": [
+            "VIEWER denied, ANALYST denied, ADMIN granted",
+            "VIEWER denied, ANALYST granted, ADMIN granted",
+            "VIEWER granted, ANALYST granted, ADMIN granted",
+            "VIEWER denied, ANALYST denied, ADMIN denied",
+        ],
+        "correct_answer": "VIEWER denied, ANALYST denied, ADMIN granted",
+    },
+    {
+        "question_text": (
+            "An unverified background process (PID 4412) tries to add VIEWER access "
+            "to a restricted repository. What must the system do first?"
+        ),
+        "options": [
+            "Quarantine the request, hold the original policy, raise a critical alert",
+            "Apply the change and log it for later review",
+            "Apply the change only for read operations",
+            "Ignore the request silently",
+        ],
+        "correct_answer": "Quarantine the request, hold the original policy, raise a critical alert",
+    },
+]
+
+SECURE_CODING_BANK = [
+    {
+        "question_text": "Which access check replaces the flawed `if role == 'ADMIN' or 'USER':`?",
+        "options": [
+            "return user_role in ALLOWED_ROLES",
+            "return user_role == 'ADMIN' or 'USER'",
+            "return bool(user_role)",
+            "return user_role.lower() in str(ALLOWED_ROLES)",
+        ],
+        "correct_answer": "return user_role in ALLOWED_ROLES",
+    },
+    {
+        "question_text": "Why is `if role == 'ADMIN' or 'USER':` always true in Python?",
+        "options": [
+            "A non-empty string literal is truthy, so the `or` short-circuits to True",
+            "Python compares strings by identity",
+            "`or` has higher precedence than `==`",
+            "`role` is implicitly cast to bool before comparison",
+        ],
+        "correct_answer": "A non-empty string literal is truthy, so the `or` short-circuits to True",
+    },
+]
+
+MONITORING_BANK = [
+    {
+        "question_text": "Which field set makes an intercepted policy-change alert actionable?",
+        "options": [
+            "Timestamp, Alert_ID, Severity, Actor, Target, Attempted_Action, Disposition",
+            "Timestamp and message text only",
+            "Severity and a free-text note",
+            "Actor and target only",
+        ],
+        "correct_answer": "Timestamp, Alert_ID, Severity, Actor, Target, Attempted_Action, Disposition",
+    },
+    {
+        "question_text": "Baseline policy is ADMIN ONLY; an unverified service tries to set ADMIN + ANALYST. What are the two required actions?",
+        "options": [
+            "Block the change and preserve the full event context for the alert queue",
+            "Apply the change and email an administrator",
+            "Apply the change and schedule a nightly audit",
+            "Block the change and discard the event details",
+        ],
+        "correct_answer": "Block the change and preserve the full event context for the alert queue",
+    },
+]
+
+INCIDENT_RESPONSE_BANK = [
+    {
+        "question_text": (
+            "An email's display name is admin@company.com but the envelope sender is "
+            "mailer@external-relays.ru, with execute.vbs inside a zip. How is it classified?"
+        ),
+        "options": [
+            "Phishing: envelope/header mismatch plus an executable script payload",
+            "Legitimate: the display name matches a known domain",
+            "Spam: unwanted but harmless bulk mail",
+            "Unknown: not enough signal to classify",
+        ],
+        "correct_answer": "Phishing: envelope/header mismatch plus an executable script payload",
+    },
+    {
+        "question_text": "How should the app throttle brute-force attempts on the decryption passphrase?",
+        "options": [
+            "Exponential backoff or a 300-second lockout after 3 failures, with the actor logged",
+            "Silently accept all attempts to avoid revealing the policy",
+            "Permanently delete the account after one failure",
+            "Slow the UI animation on each failed attempt",
+        ],
+        "correct_answer": "Exponential backoff or a 300-second lockout after 3 failures, with the actor logged",
+    },
+]
+
+CRYPTO_HYGIENE_BANK = [
+    {
+        "question_text": "How is a tamper-evident audit log chained?",
+        "options": [
+            "hash = SHA256(previous_hash + timestamp + event_data + nonce)",
+            "hash = SHA256(event_data) stored beside the row",
+            "hash = MD5(timestamp) recomputed nightly",
+            "The log is chained by auto-incrementing row IDs",
+        ],
+        "correct_answer": "hash = SHA256(previous_hash + timestamp + event_data + nonce)",
+    },
+    {
+        "question_text": "What proves a decrypted file matches the original bitstream?",
+        "options": [
+            "SHA-256 of the original equals SHA-256 of the decrypted output",
+            "The file sizes are the same",
+            "The file opens without an error dialog",
+            "The modified timestamps match",
+        ],
+        "correct_answer": "SHA-256 of the original equals SHA-256 of the decrypted output",
+    },
+]
+
+
+def generate_access_control_question(rng: random.Random) -> dict:
+    return _from_bank(rng, ACCESS_CONTROL_BANK)
+
+
+def generate_secure_coding_question(rng: random.Random) -> dict:
+    return _from_bank(rng, SECURE_CODING_BANK)
+
+
+def generate_monitoring_question(rng: random.Random) -> dict:
+    return _from_bank(rng, MONITORING_BANK)
+
+
+def generate_incident_response_question(rng: random.Random) -> dict:
+    return _from_bank(rng, INCIDENT_RESPONSE_BANK)
+
+
+def generate_crypto_hygiene_question(rng: random.Random) -> dict:
+    return _from_bank(rng, CRYPTO_HYGIENE_BANK)
+
+
 GENERATORS: dict[str, Callable[[random.Random], dict]] = {
     "binary": generate_binary_question,
     "morse": generate_morse_question,
@@ -296,6 +452,17 @@ GENERATORS: dict[str, Callable[[random.Random], dict]] = {
     "when": generate_when_question,
     "how": generate_how_question,
     "why": generate_why_question,
+    "access_control": generate_access_control_question,
+    "secure_coding": generate_secure_coding_question,
+    "monitoring": generate_monitoring_question,
+    "incident_response": generate_incident_response_question,
+    "crypto_hygiene": generate_crypto_hygiene_question,
+}
+
+BLUEPRINTS: dict[int, list[tuple[str, int]]] = {
+    1: BLUEPRINT,
+    2: ROUND2_BLUEPRINT,
+    3: ROUND3_BLUEPRINT,
 }
 
 
@@ -367,6 +534,19 @@ def assign_round1(db: Session, team: Team) -> list[TeamQuestion]:
 
 def assign_round2(db: Session, team: Team) -> list[TeamQuestion]:
     return assign_round(db, team, 2, ROUND2_BLUEPRINT)
+
+
+def assign_round3(db: Session, team: Team) -> list[TeamQuestion]:
+    return assign_round(db, team, 3, ROUND3_BLUEPRINT)
+
+
+def assign_round_for(db: Session, team: Team, round_number: int) -> list[TeamQuestion]:
+    """Round-number-indexed entry point so callers that work generically over
+    rounds (round_key, admin dev tools) don't each hardcode the mapping."""
+    blueprint = BLUEPRINTS.get(round_number)
+    if blueprint is None:
+        return []
+    return assign_round(db, team, round_number, blueprint)
 
 
 def compute_access_key(db: Session, team: Team) -> str | None:
