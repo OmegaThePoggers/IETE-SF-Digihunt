@@ -173,6 +173,8 @@ export default function Round1Page() {
 
   async function handleClaim(id: string) {
     dispatch({ type: "selected-clue", id });
+    const clue = state.board?.questions.find((question) => question.team_question_id === id);
+    if (!clue || clue.status !== "available") return;
     dispatch({ type: "claiming", id });
     try {
       await claimQuestion(id);

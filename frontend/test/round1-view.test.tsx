@@ -54,4 +54,14 @@ describe("Round1View", () => {
     await user.click(screen.getByRole("button", { name: /claim this clue/i }));
     expect(onClaim).toHaveBeenCalledWith("rq-1");
   });
+
+  it("lets participants switch between their claimed clues without the broken inline claim look", async () => {
+    const user = userEvent.setup();
+    const onClaim = vi.fn();
+    render(<Round1View model={claimedRound1Fixture} onBack={vi.fn()} onClaim={onClaim} onSelect={vi.fn()} onSubmit={vi.fn()} onRelease={vi.fn()} />);
+
+    expect(screen.queryByText(/^Claim$/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /open clue 1/i }));
+    expect(onClaim).toHaveBeenCalledWith("rq-1");
+  });
 });

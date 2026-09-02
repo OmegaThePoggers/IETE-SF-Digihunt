@@ -1,7 +1,6 @@
 import { EventHeader } from "@/components/event/event-header";
 import { EventPanel } from "@/components/event/event-panel";
 import { EventShell } from "@/components/event/event-shell";
-import { ProgressRail } from "@/components/event/progress-rail";
 import { StatusStrip } from "@/components/event/status-strip";
 import { Button } from "@/components/ui/button";
 import type { Round1Clue, Round1ViewModel } from "./round1-types";
@@ -27,6 +26,12 @@ function labelCategory(clue: Round1Clue) {
   return CATEGORY_LABEL[clue.category] ?? clue.category;
 }
 
+function clueStatusLabel(clue: Round1Clue, mine: boolean) {
+  if (clue.status === "solved") return "Solved";
+  if (clue.status === "available") return "Available";
+  return mine ? "Open" : `Held by ${clue.claimedByName ?? "team"}`;
+}
+
 export function Round1View({ model, onBack, onClaim, onSelect, onSubmit, onRelease }: Round1ViewProps) {
   const current = model.currentIndex >= 0 ? model.clues[model.currentIndex] : null;
   const solved = model.clues.filter((clue) => clue.status === "solved").length;
@@ -49,24 +54,42 @@ export function Round1View({ model, onBack, onClaim, onSelect, onSubmit, onRelea
               <p className="font-mono-data text-xs tracking-[0.16em] text-muted-foreground uppercase">Clue sequence</p>
               <p className="font-mono-data text-xs text-muted-foreground">{solved}/{total} solved</p>
             </div>
-            <ProgressRail
-              aria-label="Clue sequence"
-              steps={model.clues.map((clue, index) => ({
-                id: clue.id,
-                label: clue.status === "available" ? (
-                  <button
-                    type="button"
-                    aria-label={`Claim clue ${index + 1}`}
-                    className="-mx-2 flex w-full items-center gap-2 px-2 py-1 text-left hover:text-primary disabled:cursor-wait"
-                    disabled={model.busy}
-                    onClick={() => onClaim(clue.id)}
-                  >
-                    Clue {index + 1} <span className="text-[10px]">Claim</span>
-                  </button>
-                ) : `Clue ${index + 1}`,
-                status: clue.status === "solved" ? "complete" : index === model.currentIndex ? "active" : "upcoming",
-              }))}
-            />
+            <ol aria-label="Clue sequence" data-slot="progress-rail" className="grid gap-px bg-border sm:grid-flow-col sm:auto-cols-fr">
+              {model.clues.map((clue, index) => {
+                const active = index === model.currentIndex;
+                const mine = clue.status === "claimed" && clue.claimedByName === model.meName;
+                const clickable = clue.status === "available" || mine;
+                const status = clue.status === "solved" ? "complete" : active ? "active" : "upcoming";
+                const body = (
+                  <>
+                    <span aria-hidden="true" className="text-base">{clue.status === "solved" ? "✓" : String(index + 1).padStart(2, "0")}</span>
+                    <span className="min-w-0">
+                      <span className="block">Clue {index + 1}</span>
+                      <span className="block text-[10px] opacity-70">{clueStatusLabel(clue, mine)}</span>
+                    </span>
+                  </>
+                );
+                return (
+                  <li key={clue.id} aria-current={active ? "step" : undefined} data-status={status} className="bg-background">
+                    {clickable ? (
+                      <button
+                        type="button"
+                        aria-label={`${mine ? "Open" : "Claim"} clue ${index + 1}`}
+                        disabled={model.busy}
+                        onClick={() => onClaim(clue.id)}
+                        className={`font-mono-data flex min-h-14 w-full items-center gap-3 px-3 py-3 text-left text-xs tracking-[0.12em] uppercase transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-wait ${active ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : "text-muted-foreground"}`}
+                      >
+                        {body}
+                      </button>
+                    ) : (
+                      <div className={`font-mono-data flex min-h-14 items-center gap-3 px-3 py-3 text-xs tracking-[0.12em] uppercase ${active ? "bg-primary text-primary-foreground" : clue.status === "solved" ? "text-primary" : "text-muted-foreground"}`}>
+                        {body}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
           </div>
 
           <EventPanel variant={model.state === "complete" ? "emphasis" : model.state === "locked" ? "danger" : "default"} className="min-h-[26rem]">
