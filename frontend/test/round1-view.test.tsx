@@ -50,5 +50,8 @@ describe("Round1View", () => {
 
     await user.click(screen.getByRole("button", { name: /claim clue 2/i }));
     expect(onClaim).toHaveBeenCalledWith("rq-2");
+
+    await user.click(screen.getByRole("button", { name: /claim this clue/i }));
+    expect(onClaim).toHaveBeenCalledWith("rq-1");
   });
 });

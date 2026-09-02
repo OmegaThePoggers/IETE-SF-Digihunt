@@ -109,7 +109,11 @@ export function Round1View({ model, onBack, onClaim, onSelect, onSubmit, onRelea
 
                 {model.feedback ? <StatusStrip aria-live="polite" status={model.feedback.tone === "error" ? "error" : model.feedback.tone === "success" ? "online" : "neutral"}>{model.feedback.message}</StatusStrip> : null}
 
-                {!blocked ? (
+                {model.state === "available" ? (
+                  <Button disabled={model.busy} onClick={() => onClaim(current.id)}>
+                    {model.busy ? "Claiming..." : "Claim this clue"}
+                  </Button>
+                ) : !blocked ? (
                   <div className="flex flex-wrap gap-2.5">
                     <Button disabled={model.busy || !model.selectedAnswer} onClick={onSubmit}>{model.busy ? "Submitting..." : "Submit"}</Button>
                     <Button variant="outline" disabled={model.busy} onClick={onRelease}>Release</Button>
