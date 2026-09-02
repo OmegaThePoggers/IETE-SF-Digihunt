@@ -8,7 +8,7 @@ export type DashboardMember = {
 };
 
 export type DashboardRound = {
-  id: "round1" | "round2" | "master" | "round3";
+  id: "round1" | "gate2" | "round2" | "gate3" | "round3" | "gate4" | "round4";
   index: string;
   eyebrow: string;
   title: string;
@@ -47,7 +47,7 @@ const members: DashboardMember[] = [
 export const activeDashboardFixture = {
   team: { name: "Null Pointers", code: "KH-2048" },
   members,
-  progress: { solved: 4, total: 7 },
+  progress: { solved: 5, total: 13 },
   currentMission: {
     title: "Digital Detectives",
     summary: "Four signals remain. Re-enter the investigation and close the active trail.",
@@ -67,6 +67,17 @@ export const activeDashboardFixture = {
       href: "/round1",
     },
     {
+      id: "gate2",
+      index: "G2",
+      eyebrow: "Cipher Gate",
+      title: "Unlock Round 2",
+      description: "Unscramble the Round 1 fragments to unlock the incident dossier.",
+      state: "completed",
+      solved: 1,
+      total: 1,
+      href: "/gate/2",
+    },
+    {
       id: "round2",
       index: "02",
       eyebrow: "Digital Detectives",
@@ -78,33 +89,55 @@ export const activeDashboardFixture = {
       href: "/round2",
     },
     {
-      id: "master",
-      index: "M",
-      eyebrow: "Master Terminal",
-      title: "Authorize the final gate",
-      description: "The access terminal opens after Round 02 is complete.",
+      id: "gate3",
+      index: "G3",
+      eyebrow: "Cipher Gate",
+      title: "Unlock Round 3",
+      description: "Solve the Round 2 anagram once all evidence questions are complete.",
       state: "locked",
       solved: 0,
       total: 1,
-      href: "/master",
+      href: "/gate/3",
     },
     {
       id: "round3",
       index: "03",
-      eyebrow: "The Final Hack",
-      title: "Transmit the payload",
-      description: "The final operation unlocks after terminal authorization.",
+      eyebrow: "Defensive Prototyping",
+      title: "Clear the final hack",
+      description: "Answer the final MCQs to recover the upload gate fragments.",
       state: "locked",
       solved: 0,
-      total: 0,
+      total: 6,
       href: "/round3",
+    },
+    {
+      id: "gate4",
+      index: "G4",
+      eyebrow: "Cipher Gate",
+      title: "Unlock Round 4",
+      description: "Unscramble the Round 3 fragments to open final PPT upload.",
+      state: "locked",
+      solved: 0,
+      total: 1,
+      href: "/gate/4",
+    },
+    {
+      id: "round4",
+      index: "04",
+      eyebrow: "The Final Hack",
+      title: "Transmit the payload",
+      description: "Upload the final presentation for judge scoring.",
+      state: "locked",
+      solved: 0,
+      total: 1,
+      href: "/round4",
     },
   ],
 } satisfies DashboardViewModel;
 
 export const lockedDashboardFixture = {
   ...activeDashboardFixture,
-  progress: { solved: 0, total: 7 },
+  progress: { solved: 0, total: 13 },
   currentMission: {
     title: "The Digital Trail",
     summary: "Your first signal is live. Enter Round 01 to begin the hunt.",
@@ -120,12 +153,12 @@ export const lockedDashboardFixture = {
 
 export const completedDashboardFixture = {
   ...activeDashboardFixture,
-  progress: { solved: 8, total: 8 },
+  progress: { solved: 13, total: 13 },
   currentMission: {
     title: "Mission archived",
     summary: "Every round is complete. Review the final operation while results are processed.",
     actionLabel: "Review completed mission",
-    href: "/round3",
+    href: "/round4",
   },
   rounds: activeDashboardFixture.rounds.map((round) => ({
     ...round,

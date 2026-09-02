@@ -23,7 +23,7 @@ function teamSocketUrl(token: string) {
   return `${apiUrl.replace(/^http/, "ws")}/ws?token=${encodedToken}`;
 }
 
-// Push channel for the Master Terminal / realtime board updates (G10).
+// Push channel for realtime team-board and cipher-gate updates (G10).
 // Derives ws(s)://<api host>/ws?token=... from NEXT_PUBLIC_API_URL and
 // reconnects with a flat 2s backoff on drop — good enough for a hackathon
 // LAN, no need for exponential backoff/jitter here.

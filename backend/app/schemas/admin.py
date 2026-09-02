@@ -41,14 +41,6 @@ class SettingIn(BaseModel):
     value: str
 
 
-class MasterCodeIn(BaseModel):
-    code: str
-
-
-class MasterCodeStatusOut(BaseModel):
-    is_set: bool
-
-
 class AdminSubmissionListItem(BaseModel):
     team_code: str
     file_name: str

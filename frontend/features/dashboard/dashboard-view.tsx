@@ -144,7 +144,7 @@ export function DashboardView({ model, onNavigate, onLogout }: DashboardViewProp
                         {round.title}
                       </h3>
                       <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{round.description}</p>
-                      {round.id !== "master" ? <RoundProgress round={round} /> : null}
+                      {!round.id.startsWith("gate") ? <RoundProgress round={round} /> : null}
                     </div>
                     <div className="col-start-2 self-end sm:col-start-3 sm:text-right">
                       <p className="font-mono-data text-[11px] text-muted-foreground">

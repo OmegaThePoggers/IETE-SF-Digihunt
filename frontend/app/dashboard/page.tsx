@@ -23,7 +23,6 @@ import {
 const REFETCH_EVENTS = new Set([
   "round_progress_updated",
   "round_unlocked",
-  "master_terminal_unlocked",
 ]);
 
 const roundCopy = {
@@ -43,10 +42,17 @@ const roundCopy = {
   },
   round3: {
     index: "03",
+    eyebrow: "Defensive Prototyping",
+    title: "Clear the final hack",
+    description: "Answer final MCQs and recover every upload-gate fragment.",
+    href: "/round3",
+  },
+  round4: {
+    index: "04",
     eyebrow: "The Final Hack",
     title: "Transmit the payload",
-    description: "Complete the final operation and submit the recovered payload.",
-    href: "/round3",
+    description: "Upload the final PPT for judge scoring.",
+    href: "/round4",
   },
 } as const;
 
@@ -57,10 +63,27 @@ function progressState(progress: RoundProgress): DashboardRoundState {
 }
 
 function mapRound(
-  id: "round1" | "round2" | "round3",
+  id: "round1" | "round2" | "round3" | "round4",
   progress: RoundProgress,
 ): DashboardRound {
   return { id, ...roundCopy[id], ...progress, state: progressState(progress) };
+}
+
+function mapGate(roundNumber: 2 | 3 | 4, team: TeamMeOut): DashboardRound {
+  const gate = team.rounds.gates.find((item) => item.round_number === roundNumber);
+  const sourceRound = roundNumber - 1;
+  const state: DashboardRoundState = gate?.unlocked ? "completed" : gate?.ready ? "active" : "locked";
+  return {
+    id: `gate${roundNumber}`,
+    index: `G${roundNumber}`,
+    eyebrow: "Cipher Gate",
+    title: `Unlock Round ${roundNumber}`,
+    description: `Unscramble your Round ${sourceRound} fragments to open Round ${roundNumber}.`,
+    state,
+    solved: gate?.unlocked ? 1 : 0,
+    total: 1,
+    href: `/gate/${roundNumber}`,
+  };
 }
 
 export function toDashboardViewModel(
@@ -69,25 +92,12 @@ export function toDashboardViewModel(
 ): DashboardViewModel {
   const rounds: DashboardRound[] = [
     mapRound("round1", team.rounds.round1),
+    mapGate(2, team),
     mapRound("round2", team.rounds.round2),
-    {
-      id: "master",
-      index: "M",
-      eyebrow: "Master Terminal",
-      title: "Authorize the final gate",
-      description: team.rounds.master.solved
-        ? "Access key accepted. The final operation is authorized."
-        : "Enter the access key to authorize the final operation.",
-      state: team.rounds.master.locked
-        ? "locked"
-        : team.rounds.master.solved
-          ? "completed"
-          : "active",
-      solved: team.rounds.master.solved ? 1 : 0,
-      total: 1,
-      href: "/master",
-    },
+    mapGate(3, team),
     mapRound("round3", team.rounds.round3),
+    mapGate(4, team),
+    mapRound("round4", team.rounds.round4),
   ];
 
   const activeRound = rounds.find((round) => round.state === "active");
@@ -111,7 +121,7 @@ export function toDashboardViewModel(
           title: "Mission archived",
           summary: "Every operation is complete. Review the final transmission while results are processed.",
           actionLabel: "Review completed mission",
-          href: "/round3",
+          href: "/round4",
         }
       : {
           title: currentRound.eyebrow,
@@ -119,7 +129,7 @@ export function toDashboardViewModel(
             currentRound.state === "active"
               ? currentRound.description
               : "Mission data is synchronized. Review the latest completed operation.",
-          actionLabel: `${currentRound.solved > 0 ? "Continue" : "Begin"} ${currentRound.id === "master" ? "master terminal" : `round ${currentRound.index}`}`,
+          actionLabel: `${currentRound.solved > 0 ? "Continue" : "Begin"} ${currentRound.id.startsWith("gate") ? "cipher gate" : `round ${currentRound.index}`}`,
           href: currentRound.href,
         },
   };

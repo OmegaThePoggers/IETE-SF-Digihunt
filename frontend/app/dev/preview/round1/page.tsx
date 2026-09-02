@@ -45,7 +45,7 @@ function solveCurrentClue(current: Round1ViewModel): Round1ViewModel {
       clues: nextClues,
       currentIndex: nextClues.length,
       selectedAnswer: "",
-      accessKey: "PREVIEW-UNLOCKED-KEY",
+      nextGateRound: 2,
       feedback: { tone: "success", message: "ACCESS GRANTED — synthetic trail complete." },
       busy: false,
     };
@@ -82,6 +82,9 @@ function Round1PreviewSurface({ state }: { state: Round1PreviewState }) {
         model={model}
         onBack={() => {
           router.push(toDevPreviewHref("/dashboard"));
+        }}
+        onOpenGate={() => {
+          router.push(toDevPreviewHref("/gate/2"));
         }}
         onOpen={(id) => setModel((current) => {
           const currentIndex = current.clues.findIndex((clue) => clue.id === id);

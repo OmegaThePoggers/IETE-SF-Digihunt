@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type PreviewRoute = "dashboard" | "round1" | "round2" | "master" | "round3";
+type PreviewRoute = "dashboard" | "round1" | "round2" | "round3" | "round4" | "gate";
 
 type PreviewToolbarProps = {
   activeRoute: PreviewRoute;
@@ -12,12 +12,13 @@ const routes: { id: PreviewRoute; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "round1", label: "Round 1" },
   { id: "round2", label: "Round 2" },
-  { id: "master", label: "Master" },
   { id: "round3", label: "Round 3" },
+  { id: "gate", label: "Cipher Gate" },
+  { id: "round4", label: "Round 4" },
 ];
 
 export function PreviewToolbar({ activeRoute, activeFixture, states }: PreviewToolbarProps) {
-  const routeHref = `/dev/preview/${activeRoute}`;
+  const routeHref = activeRoute === "gate" ? "/dev/preview/gate/2" : `/dev/preview/${activeRoute}`;
 
   return (
     <nav
@@ -31,7 +32,7 @@ export function PreviewToolbar({ activeRoute, activeFixture, states }: PreviewTo
           {routes.map((route) => (
             <Link
               key={route.id}
-              href={`/dev/preview/${route.id}`}
+              href={route.id === "gate" ? "/dev/preview/gate/2" : `/dev/preview/${route.id}`}
               aria-current={activeRoute === route.id ? "page" : undefined}
               className="underline-offset-4 hover:text-primary hover:underline focus-visible:text-primary"
             >

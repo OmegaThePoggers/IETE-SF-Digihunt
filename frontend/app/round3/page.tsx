@@ -1,317 +1,95 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  ApiError,
-  getCase,
-  getCurrentSubmission,
-  getSubmissionHistory,
-  getStoredToken,
-  uploadSubmission,
-  type CaseOut,
-  type SubmissionOut,
-} from "@/lib/api";
+import { useTeamSocket } from "@/hooks/useTeamSocket";
+import { ApiError, answerQuestion, claimQuestion, getMe, getRound3Board, getStoredToken, releaseQuestion, type QuestionBoardItem, type RoundBoardOut } from "@/lib/api";
+import { Round3View } from "@/features/round3/round3-view";
+import type { Round3Question, Round3ViewModel, Round3ViewState } from "@/features/round3/round3-types";
 
-// Spec §28 — required presentation structure, shown as a persistent
-// reference in the left pane throughout the round, not just once.
-const STRUCTURE = [
-  "Problem",
-  "Investigation findings",
-  "Proposed solution",
-  "UI",
-  "How it works",
-  "Technology/tools",
-  "Impact",
-  "Future scope",
-];
+const POLL_MS = 4000;
+const BOARD_EVENTS = new Set(["question_claimed", "question_released", "question_solved", "round_progress_updated", "round_unlocked"]);
+const CATEGORY_LABEL: Record<string, string> = {
+  access_control: "ACCESS",
+  secure_coding: "CODE",
+  monitoring: "MONITOR",
+  incident_response: "RESPONSE",
+  crypto_hygiene: "CRYPTO",
+};
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+function toQuestion(q: QuestionBoardItem, selected: Record<string, string>, busy: Record<string, boolean>, feedback: Record<string, { correct: boolean; message: string }>): Round3Question {
+  return { id: q.team_question_id, category: q.category, label: CATEGORY_LABEL[q.category] ?? q.category.toUpperCase(), difficulty: q.difficulty, questionText: q.question_text, options: q.options ?? [], status: q.status, claimedByName: q.claimed_by_name, selectedAnswer: selected[q.team_question_id] ?? "", busy: !!busy[q.team_question_id], codeFragment: q.code_fragment, feedback: feedback[q.team_question_id] ?? null };
 }
 
 export default function Round3Page() {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [board, setBoard] = useState<RoundBoardOut | null>(null);
+  const [meName, setMeName] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
-  const [caseFile, setCaseFile] = useState<CaseOut | null>(null);
-  const [current, setCurrent] = useState<SubmissionOut | null>(null);
-  const [history, setHistory] = useState<SubmissionOut[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [selected, setSelected] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<Record<string, { correct: boolean; message: string }>>({});
 
-  const refreshSubmissions = useCallback(async () => {
+  const fetchBoard = useCallback(async () => {
     try {
-      setCurrent(await getCurrentSubmission());
+      const data = await getRound3Board();
+      setBoard(data);
+      setLocked(false);
+      setError(null);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        setCurrent(null);
+      if (err instanceof ApiError && err.status === 401) {
+        router.replace("/login");
+        return;
       }
+      if (err instanceof ApiError && err.status === 403) {
+        setLocked(true);
+        return;
+      }
+      setError(err instanceof ApiError ? err.message : "Failed to load final hack.");
     }
-    try {
-      setHistory(await getSubmissionHistory());
-    } catch {
-      // non-fatal — history stays empty
-    }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (!getStoredToken()) {
       router.replace("/login");
       return;
     }
-    getCase()
-      .then((data) => {
-        setCaseFile(data);
-        setLocked(false);
-        refreshSubmissions();
-      })
-      .catch((err) => {
-        if (err instanceof ApiError && err.status === 401) {
-          router.replace("/login");
-          return;
-        }
-        if (err instanceof ApiError && err.status === 403) {
-          setLocked(true);
-          return;
-        }
-        setError(err instanceof ApiError ? err.message : "Failed to load case file.");
-      });
-  }, [router, refreshSubmissions]);
+    getMe().then((me) => setMeName(me.name)).catch(() => {});
+    fetchBoard();
+    const interval = setInterval(fetchBoard, POLL_MS);
+    return () => clearInterval(interval);
+  }, [router, fetchBoard]);
 
-  async function handleFile(file: File | undefined | null) {
-    if (!file) return;
-    if (current) return;
-    setUploadError(null);
-    setUploading(true);
-    try {
-      await uploadSubmission(file);
-      await refreshSubmissions();
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 423) {
-        setUploadError("UPLOAD FAILED — Submission deadline has passed.");
-      } else if (err instanceof ApiError && err.status === 409) {
-        setUploadError("UPLOAD LOCKED — A final submission already exists.");
-      } else {
-        setUploadError("UPLOAD FAILED — Check file type and size.");
-      }
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
+  useTeamSocket(useCallback((event) => { if (BOARD_EVENTS.has(event.type)) fetchBoard(); }, [fetchBoard]));
+
+  async function handleClaim(id: string) {
+    setBusy((b) => ({ ...b, [id]: true }));
+    try { await claimQuestion(id); await fetchBoard(); }
+    catch (err) { setFeedback((f) => ({ ...f, [id]: { correct: false, message: err instanceof ApiError ? err.message : "Could not claim question." } })); }
+    finally { setBusy((b) => ({ ...b, [id]: false })); }
   }
 
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setDragOver(false);
-    if (current) return;
-    handleFile(e.dataTransfer.files?.[0]);
+  async function handleRelease(id: string) {
+    setBusy((b) => ({ ...b, [id]: true }));
+    try { await releaseQuestion(id); setSelected((s) => ({ ...s, [id]: "" })); await fetchBoard(); }
+    catch (err) { setFeedback((f) => ({ ...f, [id]: { correct: false, message: err instanceof ApiError ? err.message : "Could not release question." } })); }
+    finally { setBusy((b) => ({ ...b, [id]: false })); }
   }
 
-  if (locked) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
-        <p className="glow-cyan font-mono-data text-xl font-bold text-primary">
-          ROUND LOCKED
-        </p>
-        <p className="font-mono-data text-sm text-muted-foreground">
-          Pass the Master Terminal to unlock this round.
-        </p>
-        <Button
-          variant="outline"
-          className="font-mono-data"
-          onClick={() => router.push("/master")}
-        >
-          GO TO MASTER TERMINAL
-        </Button>
-      </main>
-    );
+  async function handleSubmit(id: string) {
+    const answer = selected[id];
+    if (!answer) return;
+    setBusy((b) => ({ ...b, [id]: true }));
+    try { const result = await answerQuestion(id, answer); setFeedback((f) => ({ ...f, [id]: { correct: result.correct, message: result.message } })); await fetchBoard(); }
+    catch (err) { setFeedback((f) => ({ ...f, [id]: { correct: false, message: err instanceof ApiError ? err.message : "Submission failed." } })); }
+    finally { setBusy((b) => ({ ...b, [id]: false })); }
   }
 
-  if (error) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-6">
-        <p className="border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono-data text-sm text-destructive">
-          {error}
-        </p>
-      </main>
-    );
-  }
+  const model = useMemo<Round3ViewModel>(() => {
+    const state: Round3ViewState = locked ? "locked" : !board && !error ? "loading" : board?.all_complete ? "complete" : Object.values(feedback).some((f) => !f.correct) ? "incorrect" : board?.questions.some((q) => q.status === "claimed" && q.claimed_by_name !== meName) ? "teammate-claimed" : "solving";
+    return { state, meName, questions: board?.questions.map((q) => toQuestion(q, selected, busy, feedback)) ?? [], error, nextGateRound: board?.next_gate_round ?? null };
+  }, [board, busy, error, feedback, locked, meName, selected]);
 
-  if (!caseFile) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-6">
-        <p className="font-mono-data text-sm text-muted-foreground">
-          LOADING CASE FILE...
-        </p>
-      </main>
-    );
-  }
-
-  return (
-    <main className="flex min-h-screen flex-col bg-background">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-5 sm:px-8">
-        <h1 className="glow-cyan font-mono-data text-lg font-bold tracking-widest text-primary uppercase sm:text-xl">
-          Round 3 // The Final Hack
-        </h1>
-        <div className="flex items-center gap-4">
-          <span className="font-mono-data text-xs tracking-widest text-muted-foreground">
-            CASE {caseFile.case_number} · {caseFile.title.toUpperCase()}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="font-mono-data"
-            onClick={() => router.push("/dashboard")}
-          >
-            MISSION CONTROL
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid flex-1 grid-cols-1 lg:grid-cols-[320px_1fr]">
-        {/* LEFT — passive reference: case brief + required structure */}
-        <div className="border-b border-border p-6 lg:border-r lg:border-b-0 sm:p-8">
-          <p className="mb-3.5 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
-            Reference — read once
-          </p>
-
-          <div className="mb-6 border border-border bg-black/20 p-4">
-            <p className="mb-2 font-mono-data text-[10px] tracking-widest text-primary uppercase">
-              Case brief
-            </p>
-            <p className="font-mono-data text-xs leading-relaxed text-foreground/90">
-              {caseFile.description}
-            </p>
-            {caseFile.evidence && Object.keys(caseFile.evidence).length > 0 && (
-              <pre className="mt-3 overflow-x-auto whitespace-pre-wrap border-t border-border pt-3 font-mono-data text-[10px] text-secondary">
-                {JSON.stringify(caseFile.evidence, null, 2)}
-              </pre>
-            )}
-          </div>
-
-          <p className="mb-2.5 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
-            Required structure
-          </p>
-          <div className="border-t border-border">
-            {STRUCTURE.map((step, i) => (
-              <div
-                key={step}
-                className="flex gap-2.5 border-b border-border py-2 font-mono-data text-xs text-foreground/90"
-              >
-                <span className="text-primary">{String(i + 1).padStart(2, "0")}</span>
-                {step}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* RIGHT — the active task: upload, current submission, history */}
-        <div className="p-6 sm:p-8">
-          <p className="mb-3.5 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
-            Submit — the action
-          </p>
-
-          {current ? (
-            <div className="mb-6 border border-primary bg-primary/10 px-6 py-8 text-center">
-              <p className="font-mono-data text-sm font-bold text-primary">FINAL SUBMISSION LOCKED</p>
-              <p className="mt-2 font-mono-data text-xs text-muted-foreground">Your uploaded presentation remains available below for review.</p>
-            </div>
-          ) : <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            className={`mb-6 flex flex-col items-center justify-center gap-3 border-2 border-dashed px-6 py-14 text-center transition-colors ${
-              dragOver ? "border-primary bg-primary/10" : "border-border"
-            }`}
-          >
-            <p className="font-mono-data text-sm font-bold text-foreground">
-              {uploading ? "UPLOADING..." : "DROP YOUR .PPTX HERE"}
-            </p>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".ppt,.pptx"
-              className="hidden"
-              onChange={(e) => handleFile(e.target.files?.[0])}
-            />
-            <Button
-              variant="outline"
-              className="font-mono-data"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              [ SELECT FILE ]
-            </Button>
-          </div>}
-
-          {uploadError && (
-            <p className="mb-6 border border-destructive/40 bg-destructive/10 px-4 py-2 font-mono-data text-sm text-destructive">
-              {uploadError}
-            </p>
-          )}
-
-          <div className="mb-6">
-            <p className="mb-2 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
-              Current submission
-            </p>
-            {current ? (
-              <div
-                className="flex flex-wrap items-center justify-between gap-2 border border-primary p-4"
-                style={{
-                  background: "linear-gradient(160deg, oklch(0.92 0.29 128 / 6%), transparent 60%)",
-                }}
-              >
-                <span className="font-mono-data text-sm text-foreground">
-                  {current.file_name} · v{current.version} · {formatBytes(current.file_size)}
-                </span>
-                <Badge className="font-mono-data">CURRENT</Badge>
-              </div>
-            ) : (
-              <p className="font-mono-data text-sm text-muted-foreground">
-                No submission uploaded yet.
-              </p>
-            )}
-          </div>
-
-          {history.length > 0 && (
-            <div>
-              <p className="mb-2 font-mono-data text-[10px] tracking-widest text-muted-foreground uppercase">
-                Version history
-              </p>
-              <div className="border-t border-border">
-                {history.map((s) => (
-                  <div
-                    key={s.id}
-                    className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-2.5 font-mono-data text-xs text-foreground"
-                  >
-                    <span>
-                      v{s.version} · {s.file_name} · {formatBytes(s.file_size)} ·{" "}
-                      {new Date(s.submitted_at).toLocaleString()}
-                    </span>
-                    <Badge
-                      variant={s.is_current ? undefined : "outline"}
-                      className="font-mono-data text-[9px]"
-                    >
-                      {s.is_current ? "CURRENT" : "SUPERSEDED"}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </main>
-  );
+  return <Round3View model={model} onBack={() => router.push("/dashboard")} onBackToRound2={() => router.push("/round2")} onOpenGate={() => router.push("/gate/4")} onClaim={handleClaim} onSelect={(id, answer) => setSelected((s) => ({ ...s, [id]: answer }))} onSubmit={handleSubmit} onRelease={handleRelease} />;
 }

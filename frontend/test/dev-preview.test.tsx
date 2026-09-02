@@ -42,8 +42,9 @@ describe("development preview helpers", () => {
     expect(toDevPreviewHref("/dashboard")).toBe("/dev/preview/dashboard");
     expect(toDevPreviewHref("/round1")).toBe("/dev/preview/round1?state=unlocked");
     expect(toDevPreviewHref("/round2")).toBe("/dev/preview/round2?state=unlocked");
-    expect(toDevPreviewHref("/master")).toBe("/dev/preview/master?state=ready");
-    expect(toDevPreviewHref("/round3")).toBe("/dev/preview/round3?state=submitted");
+    expect(toDevPreviewHref("/round3")).toBe("/dev/preview/round3?state=active");
+    expect(toDevPreviewHref("/gate/4")).toBe("/dev/preview/gate/4?state=ready");
+    expect(toDevPreviewHref("/round4")).toBe("/dev/preview/round4?state=submitted");
     expect(toDevPreviewHref("/unknown")).toBe("/dev/preview");
   });
 });
@@ -62,7 +63,7 @@ describe("PreviewToolbar", () => {
     expect(toolbar).toHaveAttribute("data-preview-toolbar", "true");
     expect(container.querySelector("[data-preview-toolbar]")).toBe(toolbar);
 
-    for (const route of ["Dashboard", "Round 1", "Round 2", "Master", "Round 3"]) {
+    for (const route of ["Dashboard", "Round 1", "Round 2", "Round 3", "Cipher Gate", "Round 4"]) {
       expect(within(toolbar).getByRole("link", { name: route })).toBeInTheDocument();
     }
 
@@ -96,8 +97,9 @@ describe("dashboard preview source", () => {
 describe("phase preview source", () => {
   const round1 = readFileSync(resolve(process.cwd(), "app/dev/preview/round1/page.tsx"), "utf8");
   const round2 = readFileSync(resolve(process.cwd(), "app/dev/preview/round2/page.tsx"), "utf8");
-  const master = readFileSync(resolve(process.cwd(), "app/dev/preview/master/page.tsx"), "utf8");
   const round3 = readFileSync(resolve(process.cwd(), "app/dev/preview/round3/page.tsx"), "utf8");
+  const gate = readFileSync(resolve(process.cwd(), "app/dev/preview/gate/[round]/page.tsx"), "utf8");
+  const round4 = readFileSync(resolve(process.cwd(), "app/dev/preview/round4/page.tsx"), "utf8");
 
   it("offers an unlocked Round 1 fixture and local click-through callbacks", () => {
     expect(round1).toContain('"unlocked"');
@@ -115,10 +117,10 @@ describe("phase preview source", () => {
     expect(round2).not.toMatch(/(?:@\/lib\/api|lib\/api)/);
   });
 
-  it("keeps linked Master and Round 3 preview pages synthetic and clickable", () => {
-    for (const source of [master, round3]) {
+  it("keeps linked Round 3, cipher-gate, and Round 4 preview pages synthetic and clickable", () => {
+    for (const source of [round3, gate, round4]) {
       expect(source).toMatch(/synthetic fixture/i);
-      expect(source).toContain("key={state}");
+      expect(source).toMatch(/key=\{/);
       expect(source).toContain("PreviewToolbar");
       expect(source).toContain("toDevPreviewHref");
       expect(source).not.toMatch(/(?:@\/lib\/api|lib\/api)/);

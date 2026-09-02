@@ -41,7 +41,8 @@ function TeamCard({ t, onOpen }: { t: AdminTeamListItem; onOpen: () => void }) {
       <div className="grid grid-cols-2 gap-y-2 font-mono-data text-xs text-muted-foreground">
         <span>R1 {t.round1.solved}/{t.round1.total}</span>
         <span>R2 {t.round2.solved}/{t.round2.total}</span>
-        <span>{t.round3_case ?? "No case"}</span>
+        <span>R3 {t.round3.solved}/{t.round3.total}</span>
+        <span>{t.round4_case ?? "No case"}</span>
         <span className={t.submitted ? "text-primary" : ""}>
           {t.submitted ? "Submitted" : "Not submitted"}
         </span>
@@ -106,7 +107,8 @@ export default function AdminTeamsPage() {
               <th className="px-4 py-3">Members</th>
               <th className="px-4 py-3">Round 1</th>
               <th className="px-4 py-3">Round 2</th>
-              <th className="px-4 py-3">Case</th>
+              <th className="px-4 py-3">Round 3</th>
+              <th className="px-4 py-3">Round 4 case</th>
               <th className="px-4 py-3">Submitted</th>
             </tr>
           </thead>
@@ -131,8 +133,11 @@ export default function AdminTeamsPage() {
                 <td className="px-4 py-3">
                   <ProgressBar solved={t.round2.solved} total={t.round2.total} />
                 </td>
+                <td className="px-4 py-3">
+                  <ProgressBar solved={t.round3.solved} total={t.round3.total} />
+                </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {t.round3_case ?? "—"}
+                  {t.round4_case ?? "—"}
                 </td>
                 <td className="px-4 py-3">
                   {t.submitted ? <Badge>YES</Badge> : <Badge variant="outline">NO</Badge>}

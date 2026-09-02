@@ -422,17 +422,6 @@ export function putAdminSetting(key: string, value: string) {
   });
 }
 
-export function setMasterCode(code: string) {
-  return request<{ status: string }>("/admin/master-code", {
-    method: "POST",
-    body: JSON.stringify({ code }),
-  });
-}
-
-export function getMasterCodeStatus() {
-  return request<{ is_set: boolean }>("/admin/master-code/status");
-}
-
 // Shared guard for /admin/* pages: 401 -> logout + back to /login, 403 ->
 // not an admin, send to /dashboard. Returns an error message to display for
 // anything else, or null when the redirect already handled it.

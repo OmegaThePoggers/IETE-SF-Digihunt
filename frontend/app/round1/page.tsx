@@ -14,7 +14,7 @@ import {
   getStoredToken,
   releaseQuestion,
   type QuestionBoardItem,
-  type Round1BoardOut,
+  type RoundBoardOut,
 } from "@/lib/api";
 
 const POLL_MS = 4000;
@@ -27,7 +27,7 @@ const BOARD_EVENTS = new Set([
 ]);
 
 type ControllerState = {
-  board: Round1BoardOut | null;
+  board: RoundBoardOut | null;
   meName: string | null;
   selectedAnswer: string;
   busy: boolean;
@@ -37,7 +37,7 @@ type ControllerState = {
 };
 
 type ControllerAction =
-  | { type: "board"; board: Round1BoardOut }
+  | { type: "board"; board: RoundBoardOut }
   | { type: "me"; name: string }
   | { type: "select"; answer: string }
   | { type: "busy"; busy: boolean }
@@ -87,7 +87,7 @@ function toClue(question: QuestionBoardItem): Round1Clue {
   };
 }
 
-function currentIndex(board: Round1BoardOut | null, selectedClueId: string | null) {
+function currentIndex(board: RoundBoardOut | null, selectedClueId: string | null) {
   if (!board) return -1;
   const selectedIndex = board.questions.findIndex(
     (question) => question.team_question_id === selectedClueId && question.status !== "solved",
@@ -151,7 +151,7 @@ export default function Round1Page() {
       clues,
       currentIndex: index,
       selectedAnswer: state.selectedAnswer,
-      accessKey: state.board?.access_key ?? null,
+      nextGateRound: state.board?.next_gate_round ?? null,
       feedback: state.feedback,
       busy: state.busy || Boolean(state.claimingId),
     };
@@ -207,6 +207,7 @@ export default function Round1Page() {
     <Round1View
       model={model}
       onBack={() => router.push("/dashboard")}
+      onOpenGate={() => router.push("/gate/2")}
       onOpen={handleOpen}
       onClaim={handleClaim}
       onSelect={(answer) => dispatch({ type: "select", answer })}

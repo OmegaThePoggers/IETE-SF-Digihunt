@@ -26,7 +26,7 @@ describe("DashboardView", () => {
       "data-state",
       "locked",
     );
-    expect(screen.getByText("4 of 7 objectives complete")).toBeInTheDocument();
+    expect(screen.getByText("5 of 13 objectives complete")).toBeInTheDocument();
   });
 
   it.each([

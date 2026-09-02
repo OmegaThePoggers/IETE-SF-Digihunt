@@ -8,7 +8,7 @@ const ROUNDS = [
     title: "The Digital Trail",
     objective:
       "Teams solve digital and physical challenges to collect hidden code fragments scattered through the event.",
-    output: "Code Fragments → Access Key",
+    output: "Code Fragments → Round 2 Cipher Gate",
     listLabel: "Challenge Types",
     items: ["QR-code clues", "Binary decoding & Morse code", "Cryptography, logic & riddles"],
   },
@@ -17,10 +17,20 @@ const ROUNDS = [
     label: "Round 2 — Investigate the Incident",
     title: "Digital Detectives",
     objective:
-      "Using their Access Key, teams open a Digital Incident Case File — logs, timestamps, suspicious emails, and code snippets.",
-    output: "Investigation Report → Stage 3 Brief",
+      "Using their solved Round 2 cipher, teams open a Digital Incident Case File — logs, timestamps, suspicious emails, and code snippets.",
+    output: "Investigation Fragments → Round 3 Cipher Gate",
     listLabel: "Questions to Answer",
     items: ["Who compromised the system", "What happened, when & how", "Which vulnerability was exploited"],
+  },
+  {
+    num: "03",
+    label: "Round 3 — Clear the Final Hack",
+    title: "Defensive Prototyping",
+    objective:
+      "Teams answer the final MCQ board on secure design, monitoring, response, and crypto hygiene before the upload gate.",
+    output: "Defense Fragments → Round 4 Cipher Gate",
+    listLabel: "Focus Areas",
+    items: ["Access control", "Secure coding & monitoring", "Incident response & crypto hygiene"],
   },
 ];
 
@@ -47,7 +57,7 @@ export default function Home() {
         <div className="hidden gap-9 md:flex">
           <a href="#overview" className="text-xs tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground">Brief</a>
           <a href="#stages" className="text-xs tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground">Stages</a>
-          <a href="#finale" className="text-xs tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground">Master Code</a>
+          <a href="#finale" className="text-xs tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground">Cipher Gates</a>
           <a href="#register" className="text-xs tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground">Register</a>
         </div>
         <div className="flex items-center gap-2">
@@ -87,9 +97,8 @@ export default function Home() {
           </div>
 
           <p className="mb-9 max-w-[560px] text-base leading-[1.75] text-secondary">
-            A three-stage, story-driven technical challenge for first-year students. Decode hidden clues,
-            investigate a simulated security incident, and build a working prototype to unlock the final Master
-            Code.
+            A four-round, story-driven technical challenge for first-year students. Decode hidden clues,
+            investigate a simulated security incident, solve the final MCQs, and unlock the final PPT upload.
           </p>
 
           <div className="mb-13 flex max-w-[660px] flex-wrap border-t border-border pt-5">
@@ -142,9 +151,9 @@ export default function Home() {
         <div className="mx-auto max-w-[1280px]">
           <span className="mb-4.5 block text-xs font-bold tracking-widest text-primary uppercase">02 — The Mission</span>
           <h2 className="mb-5 font-heading text-[clamp(28px,4.6vw,48px)] leading-[1.18] font-bold text-foreground uppercase">
-            Three Stages.
+            Four Rounds.
             <br />
-            One Unlock Key Each.
+            One Cipher Gate Each.
           </h2>
           <p className="max-w-[480px] text-[15px] leading-[1.75] text-muted-foreground">
             The story runs in sequence — each round&apos;s output is the key that opens the next.
@@ -187,24 +196,24 @@ export default function Home() {
             </div>
           ))}
 
-          {/* Round 3 */}
+          {/* Round 4 */}
           <div className="grid grid-cols-1 gap-7 border-t border-border py-12 sm:grid-cols-[120px_1fr]">
             <div
               className="font-heading text-[76px] leading-none font-bold text-transparent"
               style={{ WebkitTextStroke: "1.5px oklch(0.919 0.237 127.1 / 0.3)" }}
             >
-              03
+              04
             </div>
             <div>
-              <div className="mb-3 text-xs font-bold tracking-widest text-primary uppercase">Round 3 — Build the Solution</div>
+              <div className="mb-3 text-xs font-bold tracking-widest text-primary uppercase">Round 4 — Upload the Solution</div>
               <h3 className="mb-7 font-heading text-[clamp(22px,3.2vw,35px)] font-bold text-foreground uppercase">
                 The Final Hack
               </h3>
 
               <div className="mb-3.5 text-[11px] tracking-widest text-muted-foreground uppercase">Objective</div>
               <p className="mb-6 text-base leading-[1.75] text-secondary">
-                Teams build a working software prototype that directly addresses the vulnerability uncovered in
-                Stage 2, then deliver a live demo.
+                Teams upload their final presentation based on the investigation and defense work, then judges review
+                the submitted PPT.
               </p>
 
               <div className="mb-1.5 text-[11px] tracking-widest text-muted-foreground uppercase">Case → Required Prototype</div>
@@ -237,7 +246,7 @@ export default function Home() {
 
               <div className="mt-6.5">
                 <div className="inline-flex items-center gap-2 border border-border px-4.5 py-2.5 text-[13px] font-bold text-foreground">
-                  <span className="text-primary">→</span> Prototype + Source + Live Demo
+                  <span className="text-primary">→</span> Final PPT Upload + Judge Review
                 </div>
               </div>
             </div>
@@ -249,15 +258,15 @@ export default function Home() {
       <section id="finale" className="relative overflow-hidden px-5 py-24 text-center sm:py-32">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_50%_35%,oklch(0.919_0.237_127.1_/_6%),transparent_70%)]" />
         <div className="relative z-10 mx-auto max-w-[920px]">
-          <span className="text-xs font-bold tracking-widest text-primary uppercase">03 — The Finale</span>
+          <span className="text-xs font-bold tracking-widest text-primary uppercase">04 — The Finale</span>
           <h2 className="my-5 font-heading text-[clamp(28px,5.6vw,58px)] leading-[1.22] font-bold text-foreground uppercase">
             Run It. Reveal It.
             <br />
-            Enter The Master Code.
+            Open The Final Gate.
           </h2>
           <p className="mx-auto mb-12 max-w-[640px] text-base leading-[1.75] text-muted-foreground">
-            Teams run their working solution to generate the final unlock key and enter it into the Master Terminal
-            to complete the mission.
+            Every MCQ round reveals team-specific fragments. Unscramble the anagram at each cipher gate to unlock the
+            next round, then upload the final PPT for judge scoring.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3.5">
             <div className="border border-border px-7 py-4 text-xl font-bold tracking-widest text-primary">D1G1</div>
@@ -279,8 +288,8 @@ export default function Home() {
               Build.
             </h2>
             <p className="max-w-[440px] text-base leading-[1.75] text-secondary">
-              One online event, three rounds, a ₹10,000 prize pool. Bring a team of 1–4 and see how far you get
-              before the Master Terminal.
+              One online event, four rounds, a ₹10,000 prize pool. Bring a team of 1–4 and solve every cipher gate
+              before the final upload.
             </p>
           </div>
           <div

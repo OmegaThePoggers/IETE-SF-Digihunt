@@ -39,7 +39,7 @@ export const loadingRound1Fixture: Round1ViewModel = {
   clues: [],
   currentIndex: -1,
   selectedAnswer: "",
-  accessKey: null,
+  nextGateRound: null,
   feedback: null,
   busy: false,
 };
@@ -50,7 +50,7 @@ export const availableRound1Fixture: Round1ViewModel = {
   clues: baseClues.map((clue, index) => index === 0 ? { ...clue, status: "available", claimedByName: null } : clue),
   currentIndex: 0,
   selectedAnswer: "",
-  accessKey: null,
+  nextGateRound: null,
   feedback: { tone: "neutral", message: "Establishing clue ownership..." },
   busy: true,
 };
@@ -61,7 +61,7 @@ export const claimedRound1Fixture: Round1ViewModel = {
   clues: baseClues,
   currentIndex: 0,
   selectedAnswer: "",
-  accessKey: null,
+  nextGateRound: null,
   feedback: null,
   busy: false,
 };
@@ -83,7 +83,7 @@ export const completeRound1Fixture: Round1ViewModel = {
   })),
   currentIndex: 3,
   selectedAnswer: "",
-  accessKey: "DIGI-HUNT-2026",
+  nextGateRound: 2,
   feedback: { tone: "success", message: "ACCESS GRANTED — all fragments recovered." },
   busy: false,
 };

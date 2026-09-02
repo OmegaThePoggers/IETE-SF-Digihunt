@@ -548,22 +548,3 @@ def assign_round_for(db: Session, team: Team, round_number: int) -> list[TeamQue
         return []
     return assign_round(db, team, round_number, blueprint)
 
-
-def compute_access_key(db: Session, team: Team) -> str | None:
-    """Builds the Round 1 access key from solved TeamQuestions' code
-    fragments, in the same question_id order the Round 1 board displays them
-    (assign_round1 always returns that order). Returns None if Round 1 isn't
-    fully solved yet. This is the one place the access-key string is built —
-    both the Round 1 board (questions.py) and the Master Terminal verify
-    endpoint (master.py) call it, so a team can always enter back exactly
-    what it was shown.
-    """
-    team_questions = assign_round1(db, team)
-    if not team_questions:
-        return None
-    fragments: list[str] = []
-    for tq in team_questions:
-        if tq.status != TeamQuestionStatus.solved:
-            return None
-        fragments.append(tq.question.code_fragment)
-    return "D1G1-" + "-".join(fragments)

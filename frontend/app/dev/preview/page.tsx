@@ -4,8 +4,9 @@ const previews = [
   ["Dashboard", "/dev/preview/dashboard"],
   ["Round 1", "/dev/preview/round1"],
   ["Round 2", "/dev/preview/round2"],
-  ["Master", "/dev/preview/master"],
   ["Round 3", "/dev/preview/round3"],
+  ["Cipher Gate", "/dev/preview/gate/2"],
+  ["Round 4", "/dev/preview/round4"],
 ] as const;
 
 export default function PreviewIndexPage() {

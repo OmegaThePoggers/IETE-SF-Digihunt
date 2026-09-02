@@ -1,5 +1,5 @@
 """Admin dashboard: live event stats, team inspection, event settings,
-master-code management, and dev/operational test controls (spec §46-48).
+and dev/operational test controls (spec §46-48).
 
 Every route requires role=admin (Depends(require_role("admin"))).
 
@@ -14,17 +14,15 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.deps import require_role
-from app.core.security import hash_password
 from app.models import (
     Attempt,
     CaseFile,
     EventSettings,
-    MasterCode,
     Question,
     RoundUnlock,
     Score,
@@ -40,8 +38,6 @@ from app.schemas.admin import (
     AdminSubmissionListItem,
     AdminTeamListItem,
     DashboardOut,
-    MasterCodeIn,
-    MasterCodeStatusOut,
     SettingIn,
     SettingOut,
 )
@@ -331,23 +327,6 @@ def upsert_setting(key: str, payload: SettingIn, db: Session = Depends(get_db)):
     return SettingOut(key=row.key, value=row.value, updated_at=row.updated_at)
 
 
-# ---- Master code ------------------------------------------------------------
-
-
-@router.post("/master-code")
-def set_master_code(payload: MasterCodeIn, db: Session = Depends(get_db)):
-    db.execute(update(MasterCode).where(MasterCode.active.is_(True)).values(active=False))
-    db.add(MasterCode(code_hash=hash_password(payload.code), active=True))
-    db.commit()
-    return {"status": "ok"}
-
-
-@router.get("/master-code/status", response_model=MasterCodeStatusOut)
-def master_code_status(db: Session = Depends(get_db)):
-    is_set = db.scalar(select(MasterCode.id).where(MasterCode.active.is_(True))) is not None
-    return MasterCodeStatusOut(is_set=is_set)
-
-
 # ---- Dev / admin operational test controls (spec §47) ----------------------
 # These are admin-facing operational tools for running the event (reset a
 # stuck team, give another shot at a question, demo a specific case/round
@@ -438,13 +417,3 @@ def assign_case_override(team_id: uuid.UUID, case_number: int, db: Session = Dep
         team_case.case_id = case_file.id
     db.commit()
     return {"status": "assigned", "team_id": team_id, "case_number": case_number}
-
-
-@router.post("/dev/unlock-master/{team_id}")
-def unlock_master(team_id: uuid.UUID):
-    # The Master Terminal no longer exists — every round transition (2, 3,
-    # 4) now goes through the same cipher gate. Use
-    # POST /admin/dev/unlock-round/{team_id}/{round_number} instead.
-    return {
-        "note": "Master Terminal was replaced by cipher gates — use /admin/dev/unlock-round/{team_id}/{round_number}"
-    }

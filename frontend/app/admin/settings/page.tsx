@@ -4,15 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-  ApiError,
   getAdminSettings,
-  getMasterCodeStatus,
   getStoredToken,
   putAdminSetting,
   redirectOnAdminError,
-  setMasterCode,
   type EventSetting,
 } from "@/lib/api";
 
@@ -28,22 +24,12 @@ export default function AdminSettingsPage() {
   const [newValue, setNewValue] = useState("");
   const [savingSetting, setSavingSetting] = useState(false);
 
-  const [masterCodeSet, setMasterCodeSet] = useState<boolean | null>(null);
-  const [masterCodeInput, setMasterCodeInput] = useState("");
-  const [masterCodeSaving, setMasterCodeSaving] = useState(false);
-  const [masterCodeMessage, setMasterCodeMessage] = useState<string | null>(null);
-
   function load() {
     getAdminSettings()
       .then(setSettings)
       .catch((err) => {
         const msg = redirectOnAdminError(err, router);
         if (msg) setError(msg);
-      });
-    getMasterCodeStatus()
-      .then((r) => setMasterCodeSet(r.is_set))
-      .catch(() => {
-        // non-fatal, keep the section usable
       });
   }
 
@@ -73,23 +59,6 @@ export default function AdminSettingsPage() {
     }
   }
 
-  async function handleSetMasterCode(e: React.FormEvent) {
-    e.preventDefault();
-    if (!masterCodeInput.trim()) return;
-    setMasterCodeSaving(true);
-    setMasterCodeMessage(null);
-    try {
-      await setMasterCode(masterCodeInput.trim());
-      setMasterCodeInput("");
-      setMasterCodeMessage("Master code updated.");
-      setMasterCodeSet(true);
-    } catch (err) {
-      setMasterCodeMessage(err instanceof ApiError ? err.message : "Failed to set master code.");
-    } finally {
-      setMasterCodeSaving(false);
-    }
-  }
-
   if (error) {
     return (
       <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono-data text-sm text-destructive">
@@ -116,7 +85,7 @@ export default function AdminSettingsPage() {
         </h2>
         {settings.length === 0 ? (
           <p className="font-mono-data text-sm text-muted-foreground">
-            No settings configured yet. Known keys: round3_deadline (ISO datetime),
+            No settings configured yet. Known keys: round4_deadline (ISO datetime),
             question_claim_timeout_minutes (integer).
           </p>
         ) : (
@@ -152,7 +121,7 @@ export default function AdminSettingsPage() {
                 <input
                   id="setting-key"
                   className={inputClass}
-                  placeholder="key (e.g. round3_deadline)"
+                  placeholder="key (e.g. round4_deadline)"
                   value={newKey}
                   onChange={(e) => setNewKey(e.target.value)}
                   required
@@ -175,52 +144,6 @@ export default function AdminSettingsPage() {
                 {savingSetting ? "SAVING..." : "SAVE"}
               </Button>
             </form>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="font-mono-data text-sm tracking-widest text-secondary">
-          MASTER CODE
-        </h2>
-        <div className="flex items-center gap-2">
-          <span className="font-mono-data text-sm text-muted-foreground">Status:</span>
-          {masterCodeSet === null ? (
-            <span className="font-mono-data text-xs text-muted-foreground">checking...</span>
-          ) : masterCodeSet ? (
-            <Badge>SET</Badge>
-          ) : (
-            <Badge variant="outline">NOT SET</Badge>
-          )}
-        </div>
-        <Card className="glow-border">
-          <CardContent className="pt-4">
-            <form onSubmit={handleSetMasterCode} className="grid gap-3 sm:grid-cols-[1fr_auto]">
-              <label htmlFor="master-code-input" className="sr-only">
-                New master code
-              </label>
-              <input
-                id="master-code-input"
-                className={inputClass}
-                type="text"
-                placeholder="New master code"
-                value={masterCodeInput}
-                onChange={(e) => setMasterCodeInput(e.target.value)}
-                required
-              />
-              <Button type="submit" className="font-mono-data" disabled={masterCodeSaving}>
-                {masterCodeSaving ? "SETTING..." : "SET MASTER CODE"}
-              </Button>
-            </form>
-            {masterCodeMessage && (
-              <p className="mt-3 font-mono-data text-xs text-muted-foreground">
-                {masterCodeMessage}
-              </p>
-            )}
-            <p className="mt-2 font-mono-data text-[10px] text-muted-foreground">
-              The code is hashed on save and never displayed again — this form is
-              write-only by design.
-            </p>
           </CardContent>
         </Card>
       </section>

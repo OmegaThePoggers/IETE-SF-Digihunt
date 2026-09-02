@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTeamSocket } from "@/hooks/useTeamSocket";
-import { ApiError, answerQuestion, claimQuestion, getIncident, getMe, getRound2Board, getStoredToken, releaseQuestion, type IncidentOut, type QuestionBoardItem, type Round2BoardOut } from "@/lib/api";
+import { ApiError, answerQuestion, claimQuestion, getIncident, getMe, getRound2Board, getStoredToken, releaseQuestion, type IncidentOut, type QuestionBoardItem, type RoundBoardOut } from "@/lib/api";
 import { Round2View } from "@/features/round2/round2-view";
 import type { Round2EvidenceId, Round2Question, Round2ViewModel, Round2ViewState } from "@/features/round2/round2-types";
 
@@ -21,7 +21,7 @@ function toQuestion(q: QuestionBoardItem, selected: Record<string, string>, busy
 
 export default function Round2Page() {
   const router = useRouter();
-  const [board, setBoard] = useState<Round2BoardOut | null>(null);
+  const [board, setBoard] = useState<RoundBoardOut | null>(null);
   const [incident, setIncident] = useState<IncidentOut | null>(null);
   const [meName, setMeName] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
@@ -92,5 +92,5 @@ export default function Round2Page() {
     return { state, meName, evidence: toEvidence(incident), activeEvidenceId, questions: board?.questions.map((q) => toQuestion(q, selected, busy, feedback)) ?? [], summary: board?.summary ?? null, error };
   }, [activeEvidenceId, board, busy, error, feedback, incident, locked, meName, selected]);
 
-  return <Round2View model={model} onBack={() => router.push("/dashboard")} onBackToRound1={() => router.push("/round1")} onEvidenceTabChange={setActiveEvidenceId} onClaim={handleClaim} onSelect={(id, answer) => setSelected((s) => ({ ...s, [id]: answer }))} onSubmit={handleSubmit} onRelease={handleRelease} />;
+  return <Round2View model={model} onBack={() => router.push("/dashboard")} onOpenGate={() => router.push("/gate/3")} onBackToRound1={() => router.push("/round1")} onEvidenceTabChange={setActiveEvidenceId} onClaim={handleClaim} onSelect={(id, answer) => setSelected((s) => ({ ...s, [id]: answer }))} onSubmit={handleSubmit} onRelease={handleRelease} />;
 }

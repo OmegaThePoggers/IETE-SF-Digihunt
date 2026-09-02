@@ -9,8 +9,11 @@ const productionToPreviewHref: Record<string, string> = {
   "/dashboard": "/dev/preview/dashboard",
   "/round1": "/dev/preview/round1?state=unlocked",
   "/round2": "/dev/preview/round2?state=unlocked",
-  "/master": "/dev/preview/master?state=ready",
-  "/round3": "/dev/preview/round3?state=submitted",
+  "/round3": "/dev/preview/round3?state=active",
+  "/gate/2": "/dev/preview/gate/2?state=ready",
+  "/gate/3": "/dev/preview/gate/3?state=ready",
+  "/gate/4": "/dev/preview/gate/4?state=ready",
+  "/round4": "/dev/preview/round4?state=submitted",
 };
 
 export function toDevPreviewHref(href: string): string {

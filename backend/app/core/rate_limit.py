@@ -24,7 +24,6 @@ WINDOW_SECONDS = 60
 # back to DEFAULT_LIMIT/WINDOW_SECONDS for anything not listed here.
 TIGHT_LIMITS: dict[str, tuple[int, int]] = {
     "/auth/login": (10, 60),
-    "/master/verify": (10, 60),
 }
 
 

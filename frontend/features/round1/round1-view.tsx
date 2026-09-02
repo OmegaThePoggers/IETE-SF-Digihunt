@@ -16,6 +16,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 type Round1ViewProps = {
   model: Round1ViewModel;
   onBack: () => void;
+  onOpenGate: () => void;
   onOpen: (id: string) => void;
   onClaim: (id: string) => void;
   onSelect: (answer: string) => void;
@@ -33,7 +34,7 @@ function clueStatusLabel(clue: Round1Clue, mine: boolean) {
   return mine ? "Open" : `Held by ${clue.claimedByName ?? "team"}`;
 }
 
-export function Round1View({ model, onBack, onOpen, onClaim, onSelect, onSubmit, onRelease }: Round1ViewProps) {
+export function Round1View({ model, onBack, onOpenGate, onOpen, onClaim, onSelect, onSubmit, onRelease }: Round1ViewProps) {
   const current = model.currentIndex >= 0 ? model.clues[model.currentIndex] : null;
   const solved = model.clues.filter((clue) => clue.status === "solved").length;
   const total = model.clues.length;
@@ -102,8 +103,9 @@ export function Round1View({ model, onBack, onOpen, onClaim, onSelect, onSubmit,
                 <div>
                   <p className="font-mono-data mb-3 text-xs tracking-[0.2em] text-primary uppercase">Code fragments recovered</p>
                   <h2 className="font-heading mb-6 text-3xl font-bold uppercase">Trail complete</h2>
-                  <p className="font-mono-data mb-2 text-[11px] tracking-widest text-muted-foreground uppercase">Access key</p>
-                  <p className="glow-lime font-mono-data break-all text-3xl font-bold tracking-widest text-secondary">{model.accessKey}</p>
+                  <p className="font-mono-data mb-2 text-[11px] tracking-widest text-muted-foreground uppercase">Cipher gate ready</p>
+                  <p className="mb-5 text-sm text-muted-foreground">Unscramble your team-specific fragments in the Round {model.nextGateRound ?? 2} cipher gate to unlock the next round.</p>
+                  <Button onClick={onOpenGate}>Open cipher gate</Button>
                 </div>
               </div>
             ) : current ? (

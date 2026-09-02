@@ -66,6 +66,9 @@ function Round2PreviewSurface({ state }: { state: Round2PreviewState }) {
         onBackToRound1={() => {
           router.push(toDevPreviewHref("/round1"));
         }}
+        onOpenGate={() => {
+          router.push(toDevPreviewHref("/gate/3"));
+        }}
         onEvidenceTabChange={(activeEvidenceId: Round2EvidenceId) =>
           setModel((current) => ({ ...current, activeEvidenceId }))
         }

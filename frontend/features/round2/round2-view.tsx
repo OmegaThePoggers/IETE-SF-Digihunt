@@ -16,6 +16,7 @@ const evidenceTabs: { id: Round2EvidenceId; label: string }[] = [
 export type Round2ViewProps = {
   model: Round2ViewModel;
   onBack: () => void;
+  onOpenGate: () => void;
   onBackToRound1: () => void;
   onEvidenceTabChange: (tab: Round2EvidenceId) => void;
   onClaim: (id: string) => void;
@@ -40,7 +41,7 @@ function QuestionCard({ q, mine, onClaim, onSelect, onSubmit, onRelease }: { q: 
   </div>;
 }
 
-export function Round2View({ model, onBack, onBackToRound1, onEvidenceTabChange, onClaim, onSelect, onSubmit, onRelease }: Round2ViewProps) {
+export function Round2View({ model, onBack, onOpenGate, onBackToRound1, onEvidenceTabChange, onClaim, onSelect, onSubmit, onRelease }: Round2ViewProps) {
   if (model.state === "locked") return <main className="grid min-h-screen place-items-center bg-background px-6 text-center"><div><h1 className="font-heading text-3xl font-bold uppercase text-primary">Round locked</h1><p className="my-4 text-muted-foreground">Complete the previous mission objective to unlock this round.</p><Button variant="outline" onClick={onBackToRound1}>Back to Round 1</Button></div></main>;
   if (model.state === "loading") return <main className="grid min-h-screen place-items-center bg-background"><p className="font-mono-data text-sm text-muted-foreground">LOADING THE CASE FILE...</p></main>;
   if (model.error) return <main className="grid min-h-screen place-items-center bg-background"><StatusStrip status="error">{model.error}</StatusStrip></main>;
@@ -49,7 +50,7 @@ export function Round2View({ model, onBack, onBackToRound1, onEvidenceTabChange,
   const active = model.evidence;
 
   return <EventShell>
-    <EventHeader eyebrow="Round 2 // Digital Detectives" title={model.state === "complete" ? "Complete dossier" : "Incident dossier"} description={model.state === "complete" ? "Your completed MCQ investigation is available to review. Answers are locked and the Master Terminal is now available." : "Correlate evidence, claim investigation questions, and build the final incident summary."} actions={<Button variant="outline" onClick={onBack}>Mission control</Button>} />
+    <EventHeader eyebrow="Round 2 // Digital Detectives" title={model.state === "complete" ? "Complete dossier" : "Incident dossier"} description={model.state === "complete" ? "Your completed MCQ investigation is available to review. Answers are locked and the Round 3 cipher gate is now available." : "Correlate evidence, claim investigation questions, and build the final incident summary."} actions={<div className="flex flex-wrap gap-2"><Button variant="outline" onClick={onBack}>Mission control</Button>{model.state === "complete" ? <Button onClick={onOpenGate}>Open cipher gate</Button> : null}</div>} />
     <div className="grid gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
       <section className="space-y-5">
         <EventPanel>

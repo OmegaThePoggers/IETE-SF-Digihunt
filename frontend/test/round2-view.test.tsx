@@ -14,6 +14,7 @@ import { Round2View } from "@/features/round2/round2-view";
 
 const callbacks = () => ({
   onBack: vi.fn(),
+  onOpenGate: vi.fn(),
   onBackToRound1: vi.fn(),
   onEvidenceTabChange: vi.fn(),
   onClaim: vi.fn(),
@@ -83,13 +84,15 @@ describe("Round2View", () => {
     await user.tab();
     expect(screen.getByRole("button", { name: /mission control/i })).toHaveFocus();
     await user.tab();
+    expect(screen.getByRole("button", { name: /open cipher gate/i })).toHaveFocus();
+    await user.tab();
     expect(screen.getByRole("tab", { name: /server log/i })).toHaveFocus();
   });
 
   it("keeps completed MCQ answers visible but immutable", () => {
     render(<Round2View model={completeRound2Fixture} {...callbacks()} />);
 
-    expect(screen.getByText(/Master Terminal is now available/i)).toBeInTheDocument();
+    expect(screen.getByText(/Round 3 cipher gate is now available/i)).toBeInTheDocument();
     expect(screen.getAllByText(/✓ solved/i).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /claim/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^submit$/i })).not.toBeInTheDocument();

@@ -23,7 +23,7 @@ export type Round1ViewModel = {
   clues: Round1Clue[];
   currentIndex: number;
   selectedAnswer: string;
-  accessKey: string | null;
+  nextGateRound: number | null;
   feedback: Round1Feedback | null;
   busy: boolean;
 };
