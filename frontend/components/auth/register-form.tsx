@@ -21,9 +21,18 @@ const inputClass = "focus-ring w-full border border-border bg-input px-3 py-3 fo
 function RegisterForm({ error, submitting, onSubmit, onValidationError }: RegisterFormProps) {
   const [teamName, setTeamName] = useState("");
   const [teamPassword, setTeamPassword] = useState("");
+  const [teamSize, setTeamSize] = useState(3);
   const [members, setMembers] = useState<MemberIn[]>([
     { ...EMPTY_MEMBER }, { ...EMPTY_MEMBER }, { ...EMPTY_MEMBER },
   ]);
+
+  function selectTeamSize(size: number) {
+    setTeamSize(size);
+    setMembers((current) => Array.from(
+      { length: size },
+      (_, index) => current[index] ?? { ...EMPTY_MEMBER },
+    ));
+  }
 
   function updateMember(index: number, field: keyof MemberIn, value: string) {
     setMembers((current) => current.map((member, memberIndex) => memberIndex === index ? { ...member, [field]: value } : member));
@@ -34,7 +43,7 @@ function RegisterForm({ error, submitting, onSubmit, onValidationError }: Regist
     if (!teamPassword) return "Team password is required.";
     if (teamPassword.length < 8) return "Team password must be at least 8 characters.";
     const emails = members.map((member) => member.email.trim().toLowerCase());
-    if (members.some((member) => !member.name.trim() || !member.email.trim())) return "All 3 members need a name and email.";
+    if (members.some((member) => !member.name.trim() || !member.email.trim())) return `All ${teamSize} participant${teamSize === 1 ? "" : "s"} need a name and email.`;
     if (new Set(emails).size !== emails.length) return "Member emails must be unique.";
     return null;
   }
@@ -58,9 +67,23 @@ function RegisterForm({ error, submitting, onSubmit, onValidationError }: Regist
 
       <div className="space-y-2">
         <label htmlFor="team-password" className="font-mono-data text-xs uppercase tracking-[0.18em] text-muted-foreground">Team password</label>
-        <input id="team-password" className={inputClass} type="password" value={teamPassword} onChange={(event) => setTeamPassword(event.target.value)} autoComplete="new-password" placeholder="One 8+ character password for all 3 members" />
+        <input id="team-password" className={inputClass} type="password" value={teamPassword} onChange={(event) => setTeamPassword(event.target.value)} autoComplete="new-password" placeholder="One shared 8+ character team password" />
         <p className="text-xs leading-5 text-muted-foreground">Every member logs in with their own email and this shared team password.</p>
       </div>
+
+      <fieldset>
+        <legend className="font-mono-data mb-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">Number of participants</legend>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Number of participants">
+          {[1, 2, 3, 4].map((size) => {
+            const label = `${size} participant${size === 1 ? "" : "s"}`;
+            return <label key={size} className={`cursor-pointer border px-4 py-3 text-center font-mono-data text-sm font-bold uppercase transition-colors ${teamSize === size ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:border-secondary hover:text-foreground"}`}>
+              <input className="sr-only" type="radio" name="team-size" value={size} checked={teamSize === size} onChange={() => selectTeamSize(size)} />
+              {label}
+            </label>;
+          })}
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">Choose from 1 to 4 participants. You can change this before registering.</p>
+      </fieldset>
 
       <div>
         <SectionMarker index="03" label="Team roster" headingLevel={2} />

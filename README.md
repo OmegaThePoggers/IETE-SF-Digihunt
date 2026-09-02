@@ -136,13 +136,13 @@ Run migrations once in the release phase, not in every application process. `uv`
 
 ## Competition workflow
 
-1. Teams solve Round 1 and can revisit its recovered access key read-only.
-2. Teams complete Round 2 MCQs. Correct answers are auto-checked and lock read-only.
-3. Once every Round 2 answer is correct, the Master Terminal unlocks. Passing it unlocks Round 3.
-4. A team uploads one final `.ppt` or `.pptx` presentation. That final submission is visible to the team and judges but cannot be replaced.
-5. Judges review and score the Round 3 final presentation.
+1. Teams of 1–4 participants solve Round 1 and recover team-specific cipher fragments.
+2. Teams unscramble the fragments in the Round 2 cipher gate, then complete Round 2 MCQs.
+3. The same fragment-and-cipher-gate flow unlocks Round 3 and then Round 4.
+4. A team uploads one final `.ppt` or `.pptx` presentation in Round 4. The submission is visible to the team and judges but cannot be replaced.
+5. Judges review and score the Round 4 final presentation.
 
-The dashboard provides `Review round` controls for completed stages. Judges see per-team Round 1, 2, and 3 status ticks, a read-only Round 2 MCQ summary, final presentation downloads, and Round 3 scoring controls.
+The dashboard provides `Review round` controls for completed stages and cipher gates between rounds. Judges see per-team Round 1–4 status ticks, a read-only Round 2 MCQ summary, final presentation downloads, and Round 4 scoring controls.
 
 ## Status
 
@@ -160,7 +160,7 @@ uv run python -m app.seed
 Idempotent — safe to re-run. Creates 3 demo teams (one full playthrough, one
 mid-Round-2, one fresh) and 2 judges, and prints credentials on completion:
 
-- Participants: `<prefix><a|b|c>@digihunt.demo` / `Demo1234!` (e.g. `demo1a@digihunt.demo`)
+- Participants: `<prefix><a|b|c>@digihunt.demo` / `Demo1234!` (e.g. `demo1a@digihunt.demo`). Teams may register with 1–4 participants.
 - Judges: `judge1@digihunt.demo` / `judge2@digihunt.demo` — `Judge1234!`
 
 There is no seeded admin account — create one directly in the `users` table
@@ -171,23 +171,21 @@ There is no seeded admin account — create one directly in the `users` table
 **Participant** (JWT required unless noted)
 | Route | Method | Notes |
 |---|---|---|
-| `/auth/register-team` | POST | public — creates team + 3 users |
+| `/auth/register-team` | POST | public — creates a team with 1–4 users |
 | `/auth/login` | POST | public — rate-limited 10/min |
 | `/auth/me` | GET | |
 | `/teams/me` | GET | team + round progress |
-| `/questions/round/1` | GET | board + access key once all solved |
-| `/questions/round/2` | GET | 403 until Round 1 complete |
+| `/questions/round/{1,2,3}` | GET | MCQ board, gated by the preceding cipher where applicable |
 | `/questions/{id}/claim` \| `/release` \| `/answer` | POST | atomic claim, round-agnostic |
 | `/incident` | GET | shared Round 2 case narrative |
-| `/cases/me` | GET | 403 until Round 2 complete |
+| `/cases/me` | GET | 403 until Round 4 is unlocked |
 | `/submissions` | POST | one final `.ppt` or `.pptx` upload, then locked |
 | `/submissions/current` \| `/history` | GET | current final submission |
 | `/submissions/{id}/download` | GET | own team only |
-| `/master/status` \| `/master/verify` | GET / POST | verify rate-limited 10/min |
+| `/gates/{2,3,4}` \| `/gates/{2,3,4}/unlock` | GET / POST | team-specific cipher-gate status and verification |
 
 **Admin** (role=admin, prefix `/admin`): `/dashboard`, `/teams`, `/teams/{id}`,
-`/submissions`, `/submissions/{id}/download`, `/settings` (GET/PUT),
-`/master-code` (POST), `/master-code/status` (GET), plus `/dev/*` operational
+`/submissions`, `/submissions/{id}/download`, `/settings` (GET/PUT), plus `/dev/*` operational
 tools (reset-team, reset-question, unlock-round, assign-case).
 
 **Judge** (role=judge, prefix `/judging`): `/assigned`, `/teams/{id}`,
@@ -196,15 +194,15 @@ tools (reset-team, reset-question, unlock-round, assign-case).
 **Realtime**: `GET /ws?token=<jwt>` — team-scoped WebSocket. Origin checked
 against `CORS_ORIGINS` at handshake. Events: `question_claimed/released/solved`,
 `round_progress_updated`, `round_unlocked`, `submission_uploaded`,
-`master_terminal_unlocked`, `member_online/offline`.
+`member_online/offline`.
 
 **Frontend pages**: `/`, `/register`, `/login`, `/dashboard`, `/round1`,
-`/round2`, `/round3`, `/master`, `/admin/*`, `/judge/*`.
+`/round2`, `/round3`, `/gate/[round]`, `/round4`, `/admin/*`, `/judge/*`.
 
 ### Hardening (G11)
 
 - In-memory rate limiting (60/min general, 10/min on `/auth/login` and
-  `/master/verify`) — single-process only, see `app/core/rate_limit.py`.
+  cipher-gate verification) — single-process only, see `app/core/rate_limit.py`.
 - WebSocket handshake checks `Origin` against `CORS_ORIGINS`.
 - Global exception handler returns `{"detail": "Internal server error"}` on
   any unhandled 500, logging the real exception server-side only.

@@ -122,6 +122,47 @@ describe("access pages", () => {
     expect(screen.queryByLabelText("Member 3 password")).not.toBeInTheDocument();
   });
 
+  it("lets registrants choose one to four participants and renders that roster size", async () => {
+    const user = userEvent.setup();
+    render(<RegisterPage />);
+
+    expect(screen.getByRole("radiogroup", { name: /number of participants/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("3 participants")).toBeChecked();
+
+    await user.click(screen.getByLabelText("1 participant"));
+    expect(screen.getByLabelText("Member 1 name")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Member 2 name")).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("4 participants"));
+    expect(screen.getByLabelText("Member 4 email")).toBeInTheDocument();
+  });
+
+  it("submits exactly the selected participant roster", async () => {
+    mockedRegisterTeam.mockResolvedValue({ team_code: "KH-4040", team_name: "Four Stack", members: [] });
+    const user = userEvent.setup();
+    render(<RegisterPage />);
+
+    await user.click(screen.getByLabelText("4 participants"));
+    await user.type(screen.getByLabelText("Team name"), "Four Stack");
+    await user.type(screen.getByLabelText("Team password"), "teamsecret");
+    for (let index = 1; index <= 4; index += 1) {
+      await user.type(screen.getByLabelText(`Member ${index} name`), `Member ${index}`);
+      await user.type(screen.getByLabelText(`Member ${index} email`), `member${index}@example.com`);
+    }
+    await user.click(screen.getByRole("button", { name: "Register team" }));
+
+    expect(mockedRegisterTeam).toHaveBeenCalledWith({
+      team_name: "Four Stack",
+      team_password: "teamsecret",
+      members: [
+        { name: "Member 1", email: "member1@example.com" },
+        { name: "Member 2", email: "member2@example.com" },
+        { name: "Member 3", email: "member3@example.com" },
+        { name: "Member 4", email: "member4@example.com" },
+      ],
+    });
+  });
+
   it("announces registration validation feedback without calling the API", async () => {
     const user = userEvent.setup();
     render(<RegisterPage />);

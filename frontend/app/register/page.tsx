@@ -44,7 +44,7 @@ export default function RegisterPage() {
     <AccessShell mode="register" workspaceLabel="Team registration workspace">
       <p className="font-mono-data text-xs uppercase tracking-[0.24em] text-primary">02 // Team registration</p>
       <h1 className="mt-4 text-4xl font-black uppercase leading-none tracking-[-0.04em] sm:text-6xl">Build your unit.</h1>
-      <p className="mb-8 mt-4 max-w-xl text-sm leading-6 text-muted-foreground">Exactly three members enter the hunt. Each competitor logs in with their own email under one shared team password.</p>
+      <p className="mb-8 mt-4 max-w-xl text-sm leading-6 text-muted-foreground">Choose a team of 1 to 4 participants. Each competitor logs in with their own email under one shared team password.</p>
       <RegisterForm error={error} submitting={submitting} onSubmit={handleRegister} onValidationError={setError} />
       <p className="mt-6 font-mono-data text-xs text-muted-foreground">Already registered? <a href="/login" className="text-primary underline-offset-4 hover:underline">Return to login</a></p>
     </AccessShell>

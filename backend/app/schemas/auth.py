@@ -11,7 +11,7 @@ class MemberIn(BaseModel):
 class RegisterTeamIn(BaseModel):
     team_name: str = Field(min_length=1)
     team_password: str = Field(min_length=8)
-    members: list[MemberIn] = Field(min_length=3, max_length=3)
+    members: list[MemberIn] = Field(min_length=1, max_length=4)
 
     @field_validator("members")
     @classmethod

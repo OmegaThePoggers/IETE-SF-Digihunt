@@ -37,7 +37,7 @@ function AccessShell({ mode, workspaceLabel, children, className }: AccessShellP
             </p>
             <div className="hard-rule hard-rule-strong my-6" />
             <p className="max-w-xs text-sm leading-6 text-muted-foreground">
-              Three minds. One signal. Enter the event grid and trace the answer before the clock runs out.
+              Your team. One signal. Enter the event grid and trace the answer before the clock runs out.
             </p>
           </div>
 
