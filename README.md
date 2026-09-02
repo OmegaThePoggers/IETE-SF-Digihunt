@@ -16,6 +16,23 @@ digihunt/
 
 Docker is the recommended way to run the complete local stack. It starts PostgreSQL, applies Alembic migrations, and serves the FastAPI backend and Next.js frontend.
 
+### Windows setup
+
+Use Docker Desktop with the WSL 2 backend. This avoids path, volume, and file-watching issues that happen with the legacy Hyper-V backend.
+
+1. Install [Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/).
+2. During setup, enable **Use WSL 2 instead of Hyper-V**.
+3. Open Docker Desktop, go to **Settings → Resources → WSL Integration**, and enable your Ubuntu or preferred WSL distro.
+4. Open the project from a WSL terminal, not PowerShell, for the smoothest workflow:
+
+```bash
+cd ~/projects/IETE-SF-Digihunt
+```
+
+If the repo is on `C:\`, move or clone it inside WSL, for example under `~/projects`, before running Compose. Keeping the repo on the Windows filesystem can make installs and Docker volume mounts much slower.
+
+### Start the stack
+
 ```bash
 # Optional: override the local-development defaults
 cp .env.docker.example .env
@@ -28,6 +45,8 @@ docker compose ps
 # Frontend: http://localhost:3000
 # Backend API docs: http://localhost:8000/docs
 ```
+
+On Windows, open the site in your normal browser at `http://localhost:3000`. If Docker Desktop asks for firewall access, allow it on private networks.
 
 The database and uploaded presentation files are retained in named Docker volumes. PostgreSQL is private to the Compose network and is not exposed on the host.
 
