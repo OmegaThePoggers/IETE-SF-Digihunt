@@ -137,12 +137,15 @@ describe("access pages", () => {
     expect(screen.getByLabelText("Member 4 email")).toBeInTheDocument();
   });
 
-  it("groups each participant into a compact roster row", () => {
+  it("groups each participant into one compact roster row", () => {
     render(<RegisterPage />);
 
     expect(screen.getByRole("region", { name: /participant roster/i })).toBeInTheDocument();
-    expect(screen.getByRole("group", { name: /participant 1/i })).toHaveTextContent("Participant 01");
-    expect(screen.getByRole("group", { name: /participant 2/i })).toHaveTextContent("Participant 02");
+    const firstRow = screen.getByRole("group", { name: /participant 1/i });
+    expect(firstRow).toHaveTextContent("01");
+    expect(firstRow).not.toHaveTextContent("Participant 01");
+    expect(within(firstRow).getByLabelText("Member 1 name")).toBeInTheDocument();
+    expect(within(firstRow).getByLabelText("Member 1 email")).toBeInTheDocument();
   });
 
   it("submits exactly the selected participant roster", async () => {
