@@ -30,7 +30,7 @@ function BrandMark({ size = "md", showText = true, className, textClassName }: B
           alt="IETE Students' Forum logo"
           width={148}
           height={140}
-          className="h-full w-full object-contain"
+          className="absolute left-1/2 top-1/2 h-[114%] w-[114%] -translate-x-1/2 -translate-y-1/2 object-contain"
           priority={size === "xl"}
         />
       </span>

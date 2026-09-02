@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { BrandMark } from "@/components/event/brand-mark";
 import { AsyncState } from "@/components/event/async-state";
 import { DataLabel } from "@/components/event/data-label";
 import { EventHeader } from "@/components/event/event-header";
@@ -27,6 +28,18 @@ describe("event interface primitives", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "The challenge" }),
     ).toBeInTheDocument();
+  });
+
+  it("centers the IETE logo artwork within its mark container", () => {
+    render(<BrandMark />);
+
+    expect(screen.getByAltText("IETE Students' Forum logo")).toHaveClass(
+      "absolute",
+      "left-1/2",
+      "top-1/2",
+      "-translate-x-1/2",
+      "-translate-y-1/2",
+    );
   });
 
   it("marks the active progress step for assistive technology", () => {
