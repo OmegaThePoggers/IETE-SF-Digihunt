@@ -19,7 +19,12 @@ from app.websocket.routes import router as websocket_router
 
 logger = logging.getLogger("digihunt")
 
-app = FastAPI(title="DigiHunt API")
+app = FastAPI(
+    title="DigiHunt API",
+    docs_url="/docs" if settings.api_docs_enabled else None,
+    redoc_url="/redoc" if settings.api_docs_enabled else None,
+    openapi_url="/openapi.json" if settings.api_docs_enabled else None,
+)
 
 # Middleware runs in reverse-add order (last added = outermost), so adding
 # CORS after rate-limit means CORS still wraps everything, including 429s.

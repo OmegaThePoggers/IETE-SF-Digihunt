@@ -1,0 +1,174 @@
+name: digihunt-prod
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-digihunt}
+      POSTGRES_USER: ${POSTGRES_USER:-digihunt}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    networks:
+      - data
+    security_opt:
+      - no-new-privileges:true
+
+  migrate:
+    build:
+      context: ./backend
+    restart: "no"
+    init: true
+    environment:
+      APP_ENV: production
+      ENABLE_API_DOCS: "false"
+      UPLOAD_DIRECTORY: /data/uploads
+      PPT_DIRECTORY: /data/ppts
+      CORS_ORIGINS: '["https://${PUBLIC_HOSTNAME}"]'
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+    secrets:
+      - jwt_secret
+      - postgres_password
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - upload_data:/data/uploads
+      - ppt_data:/data/ppts
+    command: ["sh", "-c", "export POSTGRES_PASSWORD=$$(cat /run/secrets/postgres_password) && export DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-digihunt}:$${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-digihunt} && export JWT_SECRET=$$(cat /run/secrets/jwt_secret) && alembic upgrade head"]
+    networks:
+      - data
+    security_opt:
+      - no-new-privileges:true
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    init: true
+    environment:
+      APP_ENV: production
+      ENABLE_API_DOCS: "false"
+      UPLOAD_DIRECTORY: /data/uploads
+      PPT_DIRECTORY: /data/ppts
+      CORS_ORIGINS: '["https://${PUBLIC_HOSTNAME}"]'
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+    secrets:
+      - jwt_secret
+      - postgres_password
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - upload_data:/data/uploads
+      - ppt_data:/data/ppts
+    command: ["sh", "-c", "export POSTGRES_PASSWORD=$$(cat /run/secrets/postgres_password) && export DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-digihunt}:$${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-digihunt} && export JWT_SECRET=$$(cat /run/secrets/jwt_secret) && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='*'"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      - app
+      - data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: /api
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      - app
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  nginx:
+    image: nginx:1.29-alpine
+    restart: unless-stopped
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz | grep -q ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    networks:
+      - edge
+      - app
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token-file /run/secrets/cloudflared_token
+    depends_on:
+      nginx:
+        condition: service_healthy
+    secrets:
+      - cloudflared_token
+    networks:
+      - edge
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+networks:
+  edge:
+  app:
+    internal: true
+  data:
+    internal: true
+
+volumes:
+  postgres_data:
+  upload_data:
+  ppt_data:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  jwt_secret:
+    file: ./secrets/jwt_secret.txt
+  cloudflared_token:
+    file: ./secrets/cloudflared_token.txt

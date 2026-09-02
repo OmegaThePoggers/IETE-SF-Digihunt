@@ -10,6 +10,19 @@ export interface TeamSocketEvent {
 
 const RECONNECT_MS = 2000;
 
+function teamSocketUrl(token: string) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const encodedToken = encodeURIComponent(token);
+
+  if (apiUrl.startsWith("/")) {
+    const origin = typeof window === "undefined" ? "http://localhost:3000" : window.location.origin;
+    const wsOrigin = origin.replace(/^http/, "ws");
+    return `${wsOrigin}${apiUrl}/ws?token=${encodedToken}`;
+  }
+
+  return `${apiUrl.replace(/^http/, "ws")}/ws?token=${encodedToken}`;
+}
+
 // Push channel for the Master Terminal / realtime board updates (G10).
 // Derives ws(s)://<api host>/ws?token=... from NEXT_PUBLIC_API_URL and
 // reconnects with a flat 2s backoff on drop — good enough for a hackathon
@@ -25,8 +38,7 @@ export function useTeamSocket(onEvent: (event: TeamSocketEvent) => void) {
     const token = getStoredToken();
     if (!token) return;
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-    const wsUrl = `${apiUrl.replace(/^http/, "ws")}/ws?token=${encodeURIComponent(token)}`;
+    const wsUrl = teamSocketUrl(token);
 
     let socket: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -58,3 +70,5 @@ export function useTeamSocket(onEvent: (event: TeamSocketEvent) => void) {
     };
   }, []);
 }
+
+export { teamSocketUrl };

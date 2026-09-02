@@ -20,6 +20,16 @@ uploads/*
 ppts/*
 !ppts/.gitkeep
 
+# secrets and local environment
+.env
+.env.*
+!.env.docker.example
+!.env.production.example
+secrets/*.txt
+!secrets/README.md
+
+backups/
+
 # graphify
 graphify-out/
 .graphify_*

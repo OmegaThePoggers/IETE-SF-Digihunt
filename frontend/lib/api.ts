@@ -1,6 +1,11 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const TOKEN_KEY = "digihunt_token";
 
+function apiUrl(path: string) {
+  if (API_URL.startsWith("/")) return `${API_URL}${path}`;
+  return `${API_URL}${path}`;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -16,7 +21,7 @@ function getToken(): string | null {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(apiUrl(path), {
     ...init,
     headers: {
       "Content-Type": "application/json",

@@ -80,6 +80,8 @@ docker compose down --volumes
 
 Before any shared or production deployment, copy `.env.docker.example` to `.env` and replace `POSTGRES_PASSWORD` and `JWT_SECRET`. `NEXT_PUBLIC_API_URL` must be the backend URL reachable by participants' browsers, not the backend Compose service name.
 
+For the hardened Windows 11 laptop deployment with Nginx and Cloudflare Tunnel, use [`docs/DEPLOY_WINDOWS_11_CLOUDFLARE.md`](docs/DEPLOY_WINDOWS_11_CLOUDFLARE.md). Keep [`docs/OPERATIONS.md`](docs/OPERATIONS.md) open during the event.
+
 ## Run — Frontend
 
 ```bash
