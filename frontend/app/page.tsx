@@ -41,7 +41,7 @@ export default function Home() {
       <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-background/85 px-5 py-5 backdrop-blur-md sm:px-8">
         <a href="#top" className="flex items-center gap-2.5 text-sm font-semibold tracking-wide text-foreground uppercase">
           <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" style={{ boxShadow: "0 0 6px var(--primary)" }} />
-          DigiHunt // The Missing Code
+          DigiHunt <span className="hidden sm:inline">{"// The Missing Code"}</span>
         </a>
         <div className="hidden gap-9 md:flex">
           <a href="#overview" className="text-xs tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground">Brief</a>
@@ -49,12 +49,20 @@ export default function Home() {
           <a href="#finale" className="text-xs tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground">Master Code</a>
           <a href="#register" className="text-xs tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground">Register</a>
         </div>
-        <a
-          href="/register"
-          className="inline-flex items-center gap-2 border border-primary px-5 py-2.5 text-xs font-bold tracking-widest text-primary uppercase transition-colors hover:bg-primary hover:text-primary-foreground"
-        >
-          Enter →
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href="/login"
+            className="inline-flex items-center px-3 py-2.5 text-xs font-bold tracking-widest text-foreground uppercase transition-colors hover:text-primary"
+          >
+            Log in
+          </a>
+          <a
+            href="/register"
+            className="inline-flex items-center gap-2 border border-primary px-3 py-2.5 text-xs font-bold tracking-widest text-primary uppercase transition-colors hover:bg-primary hover:text-primary-foreground sm:px-5"
+          >
+            Enter →
+          </a>
+        </div>
       </nav>
 
       {/* HERO */}
