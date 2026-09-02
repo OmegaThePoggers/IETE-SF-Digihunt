@@ -38,7 +38,8 @@ class AssignedTeamOut(BaseModel):
     my_score: MyScoreSummary | None
     round1_complete: bool
     round2_complete: bool
-    round3_submitted: bool
+    round3_complete: bool
+    round4_submitted: bool
 
 
 class ScoreOut(BaseModel):

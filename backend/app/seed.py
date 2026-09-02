@@ -33,6 +33,7 @@ from app.core.security import hash_password
 from app.models import (
     Attempt,
     Question,
+    RoundUnlock,
     Score,
     Submission,
     Team,
@@ -41,7 +42,7 @@ from app.models import (
 )
 from app.models.enums import TeamQuestionStatus, UserRole
 from app.services.case_gen import assign_case, seed_cases
-from app.services.question_gen import BLUEPRINT, ROUND2_BLUEPRINT, assign_round
+from app.services.question_gen import BLUEPRINT, ROUND2_BLUEPRINT, ROUND3_BLUEPRINT, assign_round
 from app.services.team_code import generate_team_code
 
 PARTICIPANT_PASSWORD = "Demo1234!"
@@ -267,6 +268,17 @@ def _solve_all(db: Session, team_questions: list[TeamQuestion], solver: User) ->
     return solved
 
 
+def _ensure_round_unlock(db: Session, team: Team, round_number: int) -> None:
+    existing = db.scalar(
+        select(RoundUnlock).where(
+            RoundUnlock.team_id == team.id, RoundUnlock.round_number == round_number
+        )
+    )
+    if existing is None:
+        db.add(RoundUnlock(team_id=team.id, round_number=round_number))
+        db.commit()
+
+
 def _ensure_submission(db: Session, team: Team, uploaded_by: User) -> Submission:
     existing = db.scalar(
         select(Submission).where(Submission.team_id == team.id, Submission.version == 1)
@@ -364,17 +376,23 @@ def main() -> None:
 
         (team1, team1_users), (team2, team2_users), (team3, _team3_users) = teams_and_users
 
-        # --- Team 1: full playthrough — Round 1, Round 2, case, submission ---
+        # --- Team 1: full playthrough — Round 1, 2, 3, case, submission ---
         r1_t1 = assign_round(db, team1, 1, BLUEPRINT)
         _solve_all(db, r1_t1, team1_users[0])
+        _ensure_round_unlock(db, team1, 2)
         r2_t1 = assign_round(db, team1, 2, ROUND2_BLUEPRINT)
         _solve_all(db, r2_t1, team1_users[1])
+        _ensure_round_unlock(db, team1, 3)
+        r3_t1 = assign_round(db, team1, 3, ROUND3_BLUEPRINT)
+        _solve_all(db, r3_t1, team1_users[2])
+        _ensure_round_unlock(db, team1, 4)
         case1 = assign_case(db, team1)
         submission1 = _ensure_submission(db, team1, team1_users[0])
 
         # --- Team 2: Round 1 complete, Round 2 pre-populated but untouched ---
         r1_t2 = assign_round(db, team2, 1, BLUEPRINT)
         _solve_all(db, r1_t2, team2_users[0])
+        _ensure_round_unlock(db, team2, 2)
         assign_round(db, team2, 2, ROUND2_BLUEPRINT)  # board populated, all 'available'
 
         # --- Team 3: fresh, nothing assigned ---
@@ -418,7 +436,7 @@ def main() -> None:
         for u in team1_users:
             print(f"  - {u.email}")
         print(
-            f"  Status: Round 1+2 complete, case #{case1.case_number} "
+            f"  Status: Round 1+2+3 complete, Round 4 unlocked, case #{case1.case_number} "
             f"({case1.title}) assigned, submission v1 uploaded "
             f"({submission1.file_path})"
         )

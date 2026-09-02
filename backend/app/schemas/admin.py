@@ -10,7 +10,7 @@ class DashboardOut(BaseModel):
     round1_count: int
     round2_count: int
     round3_count: int
-    submitted_count: int
+    submitted_count: int  # teams with a current Round 4 submission
 
 
 class AdminRoundProgress(BaseModel):
@@ -26,7 +26,8 @@ class AdminTeamListItem(BaseModel):
     member_count: int
     round1: AdminRoundProgress
     round2: AdminRoundProgress
-    round3_case: str | None
+    round3: AdminRoundProgress
+    round4_case: str | None
     submitted: bool
 
 

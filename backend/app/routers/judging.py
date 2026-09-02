@@ -24,6 +24,7 @@ from app.schemas.judging import (
     AssignedSubmissionOut,
     AssignedTeamOut,
     MyScoreSummary,
+    Round2ReviewOut,
     ScoreIn,
     ScoreOut,
     TeamJudgingDetailOut,
@@ -85,7 +86,8 @@ def list_assigned_teams(
                 else None,
                 round1_complete=round_fully_solved(db, team.id, 1),
                 round2_complete=round_fully_solved(db, team.id, 2),
-                round3_submitted=submission is not None,
+                round3_complete=round_fully_solved(db, team.id, 3),
+                round4_submitted=submission is not None,
             )
         )
     return out

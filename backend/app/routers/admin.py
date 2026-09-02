@@ -26,6 +26,7 @@ from app.models import (
     EventSettings,
     MasterCode,
     Question,
+    RoundUnlock,
     Score,
     Submission,
     Team,
@@ -45,7 +46,7 @@ from app.schemas.admin import (
     SettingOut,
 )
 from app.services.case_gen import SEED_CASES, seed_cases
-from app.services.question_gen import BLUEPRINT, ROUND2_BLUEPRINT, assign_round
+from app.services.round_gate import ROUND_COUNT, requires_gate
 
 router = APIRouter(
     prefix="/admin", tags=["admin"], dependencies=[Depends(require_role("admin"))]
@@ -102,7 +103,7 @@ def list_teams(db: Session = Depends(get_db)):
         ).all()
     )
 
-    # one aggregate query for round1+round2 solved/total per team, batched
+    # one aggregate query for round1+round2+round3 solved/total per team, batched
     # instead of a query per team per round.
     progress_rows = db.execute(
         select(
@@ -112,7 +113,7 @@ def list_teams(db: Session = Depends(get_db)):
             func.count().filter(TeamQuestion.status == TeamQuestionStatus.solved),
         )
         .join(Question, Question.id == TeamQuestion.question_id)
-        .where(Question.round.in_([1, 2]))
+        .where(Question.round.in_([1, 2, 3]))
         .group_by(TeamQuestion.team_id, Question.round)
     ).all()
     progress: dict[tuple[uuid.UUID, int], tuple[int, int]] = {
@@ -138,6 +139,7 @@ def list_teams(db: Session = Depends(get_db)):
     for team in teams:
         r1_solved, r1_total = progress.get((team.id, 1), (0, 0))
         r2_solved, r2_total = progress.get((team.id, 2), (0, 0))
+        r3_solved, r3_total = progress.get((team.id, 3), (0, 0))
         items.append(
             AdminTeamListItem(
                 id=team.id,
@@ -147,7 +149,8 @@ def list_teams(db: Session = Depends(get_db)):
                 member_count=member_counts.get(team.id, 0),
                 round1=AdminRoundProgress(solved=r1_solved, total=r1_total),
                 round2=AdminRoundProgress(solved=r2_solved, total=r2_total),
-                round3_case=case_titles.get(team.id),
+                round3=AdminRoundProgress(solved=r3_solved, total=r3_total),
+                round4_case=case_titles.get(team.id),
                 submitted=team.id in submitted_team_ids,
             )
         )
@@ -302,7 +305,7 @@ def admin_download_submission(submission_id: uuid.UUID, db: Session = Depends(ge
 
 # ---- Event settings --------------------------------------------------------
 # Keys the rest of the app actually reads:
-#   - "round3_deadline": JSON-encoded ISO datetime string, read by
+#   - "round4_deadline": JSON-encoded ISO datetime string, read by
 #     submissions.py to gate uploads after a deadline.
 #   - "question_claim_timeout_minutes": plain int-as-string, read by
 #     questions.py's claim endpoint (falls back to 5 if missing/invalid).
@@ -385,26 +388,27 @@ def reset_question(team_question_id: uuid.UUID, db: Session = Depends(get_db)):
 
 @router.post("/dev/unlock-round/{team_id}/{round_number}")
 def unlock_round(team_id: uuid.UUID, round_number: int, db: Session = Depends(get_db)):
-    """Override unlock by force-solving all of the *previous* round's
-    TeamQuestions, so the real gate (is_round_unlocked, computed from solved
-    state) naturally reports "unlocked" — no parallel override flag that
+    """Override unlock by inserting the same RoundUnlock row a correct
+    cipher-gate submission would create — the real gate (is_round_unlocked)
+    reads exactly this table, so there is no parallel override flag that
     could later contradict the computed state."""
     team = db.get(Team, team_id)
     if team is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "team not found")
 
-    prev_round = round_number - 1
-    blueprint = {1: BLUEPRINT, 2: ROUND2_BLUEPRINT}.get(prev_round)
-    if blueprint is None:
+    if not requires_gate(round_number) or not (2 <= round_number <= ROUND_COUNT):
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "round_number must be 2 or 3 to unlock"
+            status.HTTP_400_BAD_REQUEST,
+            f"round_number must be between 2 and {ROUND_COUNT} to unlock",
         )
 
-    prev_team_questions = assign_round(db, team, prev_round, blueprint)
-    now = datetime.now(timezone.utc)
-    for tq in prev_team_questions:
-        tq.status = TeamQuestionStatus.solved
-        tq.solved_at = now
+    existing = db.scalar(
+        select(RoundUnlock.id).where(
+            RoundUnlock.team_id == team_id, RoundUnlock.round_number == round_number
+        )
+    )
+    if existing is None:
+        db.add(RoundUnlock(team_id=team_id, round_number=round_number))
     db.commit()
     return {"status": "unlocked", "team_id": team_id, "round_number": round_number}
 
@@ -438,8 +442,9 @@ def assign_case_override(team_id: uuid.UUID, case_number: int, db: Session = Dep
 
 @router.post("/dev/unlock-master/{team_id}")
 def unlock_master(team_id: uuid.UUID):
-    # ponytail: Master Terminal (spec later group) doesn't exist yet — no
-    # state to invent here. Real behavior lands with that group.
+    # The Master Terminal no longer exists — every round transition (2, 3,
+    # 4) now goes through the same cipher gate. Use
+    # POST /admin/dev/unlock-round/{team_id}/{round_number} instead.
     return {
-        "note": "Master Terminal not implemented until a later group — nothing to unlock yet"
+        "note": "Master Terminal was replaced by cipher gates — use /admin/dev/unlock-round/{team_id}/{round_number}"
     }
