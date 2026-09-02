@@ -1,21 +1,28 @@
-"""Single source of truth for round-unlock state — used by both the
-enforcement dependency (deps.require_round_unlocked) and the dashboard
-display (teams.py) so they can never disagree."""
+"""Single source of truth for round-unlock state.
+
+Round 1 is always open. Every later round opens only when the team has
+solved the previous round's anagram key, recorded as a RoundUnlock row
+(see app.services.round_key and app.routers.gates).
+"""
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import MasterAttempt, Question, Team, TeamQuestion
+from app.models import Question, RoundUnlock, Team, TeamQuestion
 from app.models.enums import TeamQuestionStatus
+
+ROUND_COUNT = 4
+MCQ_ROUNDS = (1, 2, 3)
+UPLOAD_ROUND = 4
+
+
+def requires_gate(round_number: int) -> bool:
+    return round_number > 1
 
 
 def round_fully_solved(db: Session, team_id, round_number: int) -> bool:
     """True iff `round_number` has TeamQuestions assigned and every one of
-    them is solved. Shared by is_round_unlocked (round 2's gate = round 1
-    fully solved) and master_gate.is_master_eligible (master terminal's gate
-    = round 2 fully solved) so the "is a round complete" definition lives in
-    exactly one place.
-    """
+    them is solved."""
     total, solved = db.execute(
         select(
             func.count(),
@@ -31,20 +38,14 @@ def round_fully_solved(db: Session, team_id, round_number: int) -> bool:
 
 
 def is_round_unlocked(db: Session, team: Team, round_number: int) -> bool:
-    if round_number == 1:
+    if not requires_gate(round_number):
         return True
-
-    if round_number == 3:
-        # Round 3 now unlocks by passing the Master Terminal (which itself
-        # gates on Round 2 completion — see master_gate.is_master_eligible),
-        # not directly by Round 2 completion.
-        return (
-            db.scalar(
-                select(MasterAttempt.id).where(
-                    MasterAttempt.team_id == team.id, MasterAttempt.correct.is_(True)
-                )
+    return (
+        db.scalar(
+            select(RoundUnlock.id).where(
+                RoundUnlock.team_id == team.id,
+                RoundUnlock.round_number == round_number,
             )
-            is not None
         )
-
-    return round_fully_solved(db, team.id, round_number - 1)
+        is not None
+    )
