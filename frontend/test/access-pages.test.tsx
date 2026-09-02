@@ -137,6 +137,14 @@ describe("access pages", () => {
     expect(screen.getByLabelText("Member 4 email")).toBeInTheDocument();
   });
 
+  it("groups each participant into a compact roster row", () => {
+    render(<RegisterPage />);
+
+    expect(screen.getByRole("region", { name: /participant roster/i })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /participant 1/i })).toHaveTextContent("Participant 01");
+    expect(screen.getByRole("group", { name: /participant 2/i })).toHaveTextContent("Participant 02");
+  });
+
   it("submits exactly the selected participant roster", async () => {
     mockedRegisterTeam.mockResolvedValue({ team_code: "KH-4040", team_name: "Four Stack", members: [] });
     const user = userEvent.setup();

@@ -85,27 +85,30 @@ function RegisterForm({ error, submitting, onSubmit, onValidationError }: Regist
         <p className="mt-2 text-xs text-muted-foreground">Choose from 1 to 4 participants. You can change this before registering.</p>
       </fieldset>
 
-      <div>
+      <section aria-label="Participant roster">
         <SectionMarker index="03" label="Team roster" headingLevel={2} />
-        <div className="grid gap-px bg-border md:grid-cols-3">
+        <EventPanel className="overflow-hidden p-0" variant="muted">
+          <div className="flex items-center justify-between gap-4 border-b border-border bg-background/60 px-4 py-3 sm:px-5">
+            <p className="font-mono-data text-xs font-bold uppercase tracking-[0.16em] text-foreground">Participant details</p>
+            <span className="font-mono-data text-xs text-primary">{teamSize} selected</span>
+          </div>
           {members.map((member, index) => (
-            <EventPanel key={index} className="border-0 bg-card p-4 sm:p-5">
-              <h3 className="font-mono-data mb-5 text-xs font-bold uppercase tracking-[0.2em] text-primary">Member {index + 1}</h3>
-              <div className="space-y-4">
-                {(["name", "email"] as const).map((field) => {
-                  const label = `Member ${index + 1} ${field}`;
-                  return (
-                    <div key={field} className="space-y-1.5">
-                      <label htmlFor={`member-${index}-${field}`} className="font-mono-data text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">{label}</label>
-                      <input id={`member-${index}-${field}`} className={inputClass} type={field === "email" ? "email" : "text"} value={member[field]} onChange={(event) => updateMember(index, field, event.target.value)} autoComplete={field} />
-                    </div>
-                  );
-                })}
+            <div key={index} role="group" aria-label={`Participant ${index + 1}`} className="grid gap-4 border-b border-border px-4 py-5 last:border-b-0 sm:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)] sm:items-end sm:gap-5 sm:px-5">
+              <div className="flex items-center gap-3 sm:block">
+                <span className="grid size-9 place-items-center border border-primary/40 bg-primary/10 font-mono-data text-xs font-bold text-primary">{String(index + 1).padStart(2, "0")}</span>
+                <p className="font-mono-data text-xs font-bold uppercase tracking-[0.16em] text-foreground sm:mt-2">Participant {String(index + 1).padStart(2, "0")}</p>
               </div>
-            </EventPanel>
+              {(["name", "email"] as const).map((field) => {
+                const label = `Member ${index + 1} ${field}`;
+                return <div key={field} className="space-y-1.5">
+                  <label htmlFor={`member-${index}-${field}`} className="font-mono-data text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">{field === "name" ? "Full name" : "Email address"}</label>
+                  <input id={`member-${index}-${field}`} className={inputClass} type={field === "email" ? "email" : "text"} value={member[field]} onChange={(event) => updateMember(index, field, event.target.value)} autoComplete={field} aria-label={label} />
+                </div>;
+              })}
+            </div>
           ))}
-        </div>
-      </div>
+        </EventPanel>
+      </section>
 
       {error ? <p role="alert" className="border-l-2 border-destructive bg-destructive/[0.07] px-4 py-3 font-mono-data text-sm text-destructive">{error}</p> : null}
       <Button type="submit" size="lg" className="w-full font-mono-data" disabled={submitting}>{submitting ? "Registering team" : "Register team"}</Button>
