@@ -1,5 +1,6 @@
 import * as React from "react";
 
+import { BrandMark } from "@/components/event/brand-mark";
 import { EventShell } from "@/components/event/event-shell";
 import { cn } from "@/lib/utils";
 
@@ -18,13 +19,13 @@ function AccessShell({ mode, workspaceLabel, children, className }: AccessShellP
           aria-label="DigiHunt event identity"
           className="relative flex min-h-72 flex-col justify-between overflow-hidden border-b border-primary/40 bg-primary/[0.06] p-6 lg:col-span-5 lg:min-h-0 lg:border-r lg:border-b-0 lg:p-10"
         >
-          <div className="flex items-center justify-between font-mono-data text-xs uppercase tracking-[0.24em] text-primary">
-            <span>DigiHunt // 2026</span>
+          <div className="flex items-center justify-between gap-4 font-mono-data text-xs uppercase tracking-[0.24em] text-primary">
+            <BrandMark size="sm" textClassName="hidden sm:flex" />
             <span>{mode === "login" ? "Access" : "Enlist"}</span>
           </div>
 
-          <div aria-hidden="true" className="absolute -right-4 top-1/2 -translate-y-1/2 font-heading text-[13rem] font-black leading-none tracking-[-0.12em] text-primary/[0.08] sm:text-[18rem] lg:-right-10 lg:text-[24rem]">
-            KH
+          <div aria-hidden="true" className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-[0.07] blur-[0.2px] sm:-right-10 lg:-right-16">
+            <BrandMark size="xl" showText={false} className="scale-[2.8] sm:scale-[3.8] lg:scale-[5]" />
           </div>
 
           <div className="relative max-w-md py-12 lg:py-20">

@@ -23,6 +23,7 @@ describe("event interface primitives", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "Mission control" }),
     ).toBeInTheDocument();
+    expect(screen.getByAltText("IETE Students' Forum logo")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { level: 2, name: "The challenge" }),
     ).toBeInTheDocument();

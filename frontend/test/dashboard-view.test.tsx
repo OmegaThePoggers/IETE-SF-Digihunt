@@ -82,6 +82,7 @@ describe("DashboardView", () => {
   it("keeps team code and presence secondary while exposing readable presence labels", () => {
     render(<DashboardView model={activeDashboardFixture} onNavigate={vi.fn()} onLogout={vi.fn()} />);
 
+    expect(screen.getByAltText("IETE Students' Forum logo")).toBeInTheDocument();
     expect(screen.getByText(activeDashboardFixture.team.code)).toHaveClass("font-mono-data");
     expect(screen.getByText("2 / 3 online")).toHaveClass("font-mono-data");
     expect(screen.getByText("Asha", { exact: true })).not.toHaveClass("font-mono-data");

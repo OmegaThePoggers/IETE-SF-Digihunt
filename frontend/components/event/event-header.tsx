@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { BrandMark } from "@/components/event/brand-mark"
 import { cn } from "@/lib/utils"
 
 type EventHeaderProps = React.ComponentProps<"header"> & {
@@ -25,6 +26,7 @@ function EventHeader({
     >
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
         <div className="min-w-0">
+          <BrandMark size="sm" className="mb-5" />
           {eyebrow ? (
             <p className="font-mono-data mb-3 text-xs uppercase tracking-[0.24em] text-primary">
               {eyebrow}

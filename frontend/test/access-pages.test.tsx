@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -50,7 +50,8 @@ describe("access pages", () => {
     render(<LoginPage />);
 
     const branding = screen.getByRole("region", { name: "DigiHunt event identity" });
-    expect(branding).toHaveTextContent("KH");
+    expect(within(branding).getAllByAltText("IETE Students' Forum logo").length).toBeGreaterThan(0);
+    expect(branding).toHaveTextContent("IETE SF");
     expect(branding).toHaveTextContent("DIGIHUNT");
     expect(branding).toHaveClass("lg:col-span-5");
     expect(screen.getByRole("region", { name: "Team access workspace" })).toHaveClass(

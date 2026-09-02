@@ -1,4 +1,5 @@
 import { BootSequence } from "@/components/boot-sequence";
+import { BrandMark } from "@/components/event/brand-mark";
 
 const ROUNDS = [
   {
@@ -40,8 +41,8 @@ export default function Home() {
       {/* NAV */}
       <nav className="sticky top-0 z-50 flex items-center justify-between border-b border-border/60 bg-background/85 px-5 py-5 backdrop-blur-md sm:px-8">
         <a href="#top" className="flex items-center gap-2.5 text-sm font-semibold tracking-wide text-foreground uppercase">
-          <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" style={{ boxShadow: "0 0 6px var(--primary)" }} />
-          DigiHunt <span className="hidden sm:inline">{"// The Missing Code"}</span>
+          <BrandMark size="sm" textClassName="hidden sm:flex" />
+          <span className="sr-only">DigiHunt // The Missing Code</span>
         </a>
         <div className="hidden gap-9 md:flex">
           <a href="#overview" className="text-xs tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground">Brief</a>
@@ -73,6 +74,8 @@ export default function Home() {
             <span className="border border-border px-3.5 py-1.5 text-[11px] tracking-widest text-muted-foreground uppercase">IETE SF Presents</span>
             <span className="border border-border px-3.5 py-1.5 text-[11px] tracking-widest text-muted-foreground uppercase">Online Event</span>
           </div>
+
+          <BrandMark size="xl" className="mb-8" textClassName="text-base" />
 
           <h1 className="mb-7 font-heading text-[clamp(46px,9.5vw,124px)] leading-[0.92] font-bold tracking-tight uppercase">
             <span className="glow-cyan text-foreground">DIGI</span>
@@ -313,10 +316,7 @@ export default function Home() {
       {/* FOOTER */}
       <footer className="border-t border-border px-5 py-6 sm:px-8">
         <div className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-4">
-          <div className="flex gap-6.5">
-            <span className="text-[12.5px] text-muted-foreground">IETE SF</span>
-            <span className="text-[12.5px] text-muted-foreground">DigiHunt</span>
-          </div>
+          <BrandMark size="sm" textClassName="hidden sm:flex" />
           <div className="flex gap-6.5">
             <a href="#overview" className="text-[12.5px] text-muted-foreground transition-colors hover:text-foreground">Brief</a>
             <a href="#stages" className="text-[12.5px] text-muted-foreground transition-colors hover:text-foreground">Stages</a>

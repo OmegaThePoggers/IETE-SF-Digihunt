@@ -20,8 +20,13 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DIGIHUNT // THE MISSING CODE",
-  description: "A story-driven technical challenge. The system has been compromised. The code is missing.",
+  title: "IETE SF DigiHunt // The Missing Code",
+  description: "IETE Students' Forum presents DigiHunt, a story-driven technical challenge where teams decode, investigate, and build.",
+  icons: {
+    icon: "/ietelogo.png",
+    shortcut: "/ietelogo.png",
+    apple: "/ietelogo.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

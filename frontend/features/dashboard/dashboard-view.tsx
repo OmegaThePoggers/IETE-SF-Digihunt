@@ -1,5 +1,6 @@
 import { ArrowRight, Check, Lock } from "lucide-react";
 
+import { BrandMark } from "@/components/event/brand-mark";
 import { Button } from "@/components/ui/button";
 import type { DashboardRound, DashboardViewModel } from "./dashboard-fixtures";
 
@@ -69,10 +70,7 @@ export function DashboardView({ model, onNavigate, onLogout }: DashboardViewProp
   return (
     <main className="min-h-screen overflow-hidden">
       <header className="page-gutter flex min-h-20 items-center justify-between gap-5 border-b border-border">
-        <div className="flex items-center gap-3">
-          <span className="pixel-marker" aria-hidden="true" />
-          <span className="text-sm font-bold tracking-[0.12em] uppercase">DigiHunt / Mission Control</span>
-        </div>
+        <BrandMark size="sm" textClassName="hidden sm:flex" />
         <Button variant="quiet" onClick={onLogout}>Logout</Button>
       </header>
 
