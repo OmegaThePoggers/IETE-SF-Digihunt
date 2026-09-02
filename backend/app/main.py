@@ -9,9 +9,9 @@ from app.core.rate_limit import RateLimitMiddleware
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.cases import router as cases_router
+from app.routers.gates import router as gates_router
 from app.routers.incident import router as incident_router
 from app.routers.judging import router as judging_router
-from app.routers.master import router as master_router
 from app.routers.questions import router as questions_router
 from app.routers.submissions import router as submissions_router
 from app.routers.teams import router as teams_router
@@ -51,7 +51,7 @@ app.include_router(cases_router)
 app.include_router(submissions_router)
 app.include_router(admin_router)
 app.include_router(judging_router)
-app.include_router(master_router)
+app.include_router(gates_router)
 app.include_router(websocket_router)
 
 

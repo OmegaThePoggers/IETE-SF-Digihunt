@@ -15,16 +15,18 @@ class RoundProgress(BaseModel):
     locked: bool
 
 
-class MasterProgress(BaseModel):
-    locked: bool
-    solved: bool
+class GateProgress(BaseModel):
+    round_number: int
+    ready: bool
+    unlocked: bool
 
 
 class RoundsOut(BaseModel):
     round1: RoundProgress
     round2: RoundProgress
     round3: RoundProgress
-    master: MasterProgress
+    round4: RoundProgress
+    gates: list[GateProgress]
 
 
 class TeamMeOut(BaseModel):
