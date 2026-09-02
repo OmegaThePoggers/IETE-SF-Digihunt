@@ -24,14 +24,11 @@ from app.schemas.judging import (
     AssignedSubmissionOut,
     AssignedTeamOut,
     MyScoreSummary,
-    Round2ReviewIn,
-    Round2ReviewOut,
     ScoreIn,
     ScoreOut,
     TeamJudgingDetailOut,
 )
-from app.services.round_gate import round2_fully_approved, round_fully_solved
-from app.websocket.manager import broadcast_from_sync
+from app.services.round_gate import round_fully_solved
 
 router = APIRouter(
     prefix="/judging", tags=["judging"], dependencies=[Depends(require_role("judge"))]
@@ -87,7 +84,7 @@ def list_assigned_teams(
                 if my_score is not None
                 else None,
                 round1_complete=round_fully_solved(db, team.id, 1),
-                round2_approved=round2_fully_approved(db, team.id),
+                round2_complete=round_fully_solved(db, team.id, 2),
                 round3_submitted=submission is not None,
             )
         )
@@ -166,50 +163,6 @@ def get_team_judging_detail(
         round2_investigation_summary=round2_summary,
         my_score=my_score,
         round2_review=round2_review,
-    )
-
-
-@router.post("/teams/{team_id}/round2/{team_question_id}/review", response_model=Round2ReviewOut)
-def review_round2_answer(
-    team_id: uuid.UUID,
-    team_question_id: uuid.UUID,
-    payload: Round2ReviewIn,
-    judge: User = Depends(require_role("judge")),
-    db: Session = Depends(get_db),
-):
-    row = db.scalar(
-        select(TeamQuestion).join(Question).where(
-            TeamQuestion.id == team_question_id,
-            TeamQuestion.team_id == team_id,
-            Question.round == 2,
-            TeamQuestion.status == TeamQuestionStatus.solved,
-        )
-    )
-    if row is None:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Round 2 answer is not ready for review")
-    latest = db.scalar(select(Attempt).where(Attempt.team_question_id == row.id).order_by(Attempt.created_at.desc()))
-    now = datetime.now(timezone.utc)
-    row.judge_approved = payload.approved
-    row.judge_reviewed_by = judge.id
-    row.judge_reviewed_at = now
-    if not payload.approved:
-        row.status = TeamQuestionStatus.available
-        row.assigned_to = None
-        row.claim_expires_at = None
-        row.solved_by = None
-        row.solved_at = None
-    db.commit()
-    if payload.approved and round2_fully_approved(db, team_id):
-        broadcast_from_sync(team_id, {"type": "round_unlocked", "round": "master"})
-    else:
-        broadcast_from_sync(team_id, {"type": "round_progress_updated", "round": 2})
-    return Round2ReviewOut(
-        team_question_id=row.id,
-        category=row.question.category,
-        question_text=row.question.question_text,
-        submitted_answer=latest.selected_answer if latest else None,
-        ideal_answer=row.question.correct_answer,
-        judge_approved=payload.approved,
     )
 
 

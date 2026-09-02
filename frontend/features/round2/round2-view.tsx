@@ -49,7 +49,7 @@ export function Round2View({ model, onBack, onBackToRound1, onEvidenceTabChange,
   const active = model.evidence;
 
   return <EventShell>
-    <EventHeader eyebrow="Round 2 // Digital Detectives" title={model.state === "complete" ? "Complete dossier" : model.state === "awaiting-review" ? "Review pending" : "Incident dossier"} description={model.state === "complete" ? "Your completed investigation is available to review. Answers are locked." : model.state === "awaiting-review" ? "Your submitted answers are locked while a judge verifies them. Rejected answers will reopen for correction." : "Correlate evidence, claim investigation questions, and build the final incident summary."} actions={<Button variant="outline" onClick={onBack}>Mission control</Button>} />
+    <EventHeader eyebrow="Round 2 // Digital Detectives" title={model.state === "complete" ? "Complete dossier" : "Incident dossier"} description={model.state === "complete" ? "Your completed MCQ investigation is available to review. Answers are locked and the Master Terminal is now available." : "Correlate evidence, claim investigation questions, and build the final incident summary."} actions={<Button variant="outline" onClick={onBack}>Mission control</Button>} />
     <div className="grid gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
       <section className="space-y-5">
         <EventPanel>
@@ -62,7 +62,6 @@ export function Round2View({ model, onBack, onBackToRound1, onEvidenceTabChange,
       </section>
       <section className="space-y-5">
         <ProgressRail aria-label="Progress trail" steps={model.questions.map((q) => ({ id: q.id, label: q.label, status: q.status === "solved" ? "complete" : q.status === "claimed" ? "active" : "upcoming" }))} />
-        {model.state === "awaiting-review" ? <StatusStrip status="neutral">AWAITING JUDGE APPROVAL. SUBMITTED ANSWERS ARE READ ONLY.</StatusStrip> : null}
         {model.state === "complete" && model.summary ? <EventPanel><h2 className="font-heading mb-4 text-2xl font-bold uppercase">Investigation summary</h2><div className="grid gap-2 sm:grid-cols-2">{Object.entries(model.summary).map(([k, v]) => <p key={k}><span className="font-mono-data text-secondary">{k.toUpperCase()}:</span> {v}</p>)}</div></EventPanel> : null}
         <EventPanel><p className="mb-4 font-mono-data text-xs tracking-[0.16em] uppercase text-muted-foreground">Investigation questions</p><div className="space-y-2">{model.questions.map((q) => <QuestionCard key={q.id} q={q} mine={q.claimedByName === model.meName} onClaim={onClaim} onSelect={onSelect} onSubmit={onSubmit} onRelease={onRelease} />)}</div></EventPanel>
       </section>

@@ -137,12 +137,12 @@ Run migrations once in the release phase, not in every application process. `uv`
 ## Competition workflow
 
 1. Teams solve Round 1 and can revisit its recovered access key read-only.
-2. Teams submit every Round 2 answer. A judge sees each submitted answer beside its ideal answer and approves or rejects it.
-3. A rejected Round 2 answer reopens only that question for correction. Approved answers remain read-only.
-4. Once every Round 2 answer is judge-approved, the Master Terminal unlocks. Passing it unlocks Round 3.
-5. A team uploads one final `.ppt` or `.pptx` presentation. That final submission is visible to the team and judges but cannot be replaced.
+2. Teams complete Round 2 MCQs. Correct answers are auto-checked and lock read-only.
+3. Once every Round 2 answer is correct, the Master Terminal unlocks. Passing it unlocks Round 3.
+4. A team uploads one final `.ppt` or `.pptx` presentation. That final submission is visible to the team and judges but cannot be replaced.
+5. Judges review and score the Round 3 final presentation.
 
-The dashboard provides `Review round` controls for completed stages. Judges see per-team Round 1, 2, and 3 status ticks, the Round 2 review queue, and final presentation downloads.
+The dashboard provides `Review round` controls for completed stages. Judges see per-team Round 1, 2, and 3 status ticks, a read-only Round 2 MCQ summary, final presentation downloads, and Round 3 scoring controls.
 
 ## Status
 
@@ -191,7 +191,6 @@ There is no seeded admin account — create one directly in the `users` table
 tools (reset-team, reset-question, unlock-round, assign-case).
 
 **Judge** (role=judge, prefix `/judging`): `/assigned`, `/teams/{id}`,
-`/teams/{id}/round2/{team_question_id}/review` (POST),
 `/teams/{id}/download`, `/teams/{id}/score` (POST, one-way finalize).
 
 **Realtime**: `GET /ws?token=<jwt>` — team-scoped WebSocket. Origin checked

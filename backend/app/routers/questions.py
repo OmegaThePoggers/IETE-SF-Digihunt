@@ -134,9 +134,7 @@ def get_round2_board(
         all_complete=all_complete,
         investigation_complete=all_complete,
         summary=summary if all_complete else None,
-        awaiting_judge_approval=all_complete and any(
-            tq.judge_approved is not True for tq in team_questions
-        ),
+        awaiting_judge_approval=False,
     )
 
 
@@ -240,24 +238,6 @@ def answer_question(
             correct=correct,
         )
     )
-
-    if question.round == 2:
-        now = datetime.now(timezone.utc)
-        db.execute(
-            update(TeamQuestion)
-            .where(TeamQuestion.id == team_question_id, TeamQuestion.status == TeamQuestionStatus.claimed)
-            .values(
-                status=TeamQuestionStatus.solved,
-                solved_by=user.id,
-                solved_at=now,
-                judge_approved=None,
-                judge_reviewed_by=None,
-                judge_reviewed_at=None,
-            )
-        )
-        db.commit()
-        broadcast_from_sync(user.team_id, {"type": "round_progress_updated", "round": 2})
-        return AnswerOut(correct=True, message="Submitted for judge review")
 
     if not correct:
         db.commit()

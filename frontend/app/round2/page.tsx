@@ -88,7 +88,7 @@ export default function Round2Page() {
   }
 
   const model = useMemo<Round2ViewModel>(() => {
-    const state: Round2ViewState = locked ? "locked" : !board && !error ? "loading" : board?.awaiting_judge_approval ? "awaiting-review" : board?.investigation_complete ? "complete" : Object.values(feedback).some((f) => !f.correct) ? "incorrect" : board?.questions.some((q) => q.status === "claimed" && q.claimed_by_name !== meName) ? "teammate-claimed" : "investigating";
+    const state: Round2ViewState = locked ? "locked" : !board && !error ? "loading" : board?.investigation_complete ? "complete" : Object.values(feedback).some((f) => !f.correct) ? "incorrect" : board?.questions.some((q) => q.status === "claimed" && q.claimed_by_name !== meName) ? "teammate-claimed" : "investigating";
     return { state, meName, evidence: toEvidence(incident), activeEvidenceId, questions: board?.questions.map((q) => toQuestion(q, selected, busy, feedback)) ?? [], summary: board?.summary ?? null, error };
   }, [activeEvidenceId, board, busy, error, feedback, incident, locked, meName, selected]);
 

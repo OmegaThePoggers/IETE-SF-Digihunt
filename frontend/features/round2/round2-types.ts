@@ -1,4 +1,4 @@
-export type Round2ViewState = "locked" | "loading" | "investigating" | "teammate-claimed" | "incorrect" | "awaiting-review" | "complete";
+export type Round2ViewState = "locked" | "loading" | "investigating" | "teammate-claimed" | "incorrect" | "complete";
 export type Round2EvidenceId = "log" | "email" | "code" | "timeline";
 export type Round2QuestionStatus = "available" | "claimed" | "solved";
 

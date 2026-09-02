@@ -61,7 +61,7 @@ export default function JudgePage() {
                   Case: {t.case ? `#${t.case.case_number} · ${t.case.title}` : "Not assigned"}
                 </p>
                 <p className="text-muted-foreground">
-                  Stages: {t.round1_complete ? "✓ R1" : "○ R1"} · {t.round2_approved ? "✓ R2" : "○ R2"} · {t.round3_submitted ? "✓ R3" : "○ R3"}
+                  Stages: {t.round1_complete ? "✓ R1" : "○ R1"} · {t.round2_complete ? "✓ R2" : "○ R2"} · {t.round3_submitted ? "✓ R3" : "○ R3"}
                 </p>
                 <p className="text-muted-foreground">
                   Submission: {t.submission ? `${t.submission.file_name} (${new Date(t.submission.submitted_at).toLocaleString()})` : "Not submitted"}

@@ -21,11 +21,8 @@ class Round2ReviewOut(BaseModel):
     question_text: str
     submitted_answer: str | None
     ideal_answer: str
+    # Round 2 is an auto-checked MCQ round. Judges see this as read-only context.
     judge_approved: bool | None
-
-
-class Round2ReviewIn(BaseModel):
-    approved: bool
 
 
 class MyScoreSummary(BaseModel):
@@ -40,7 +37,7 @@ class AssignedTeamOut(BaseModel):
     submission: AssignedSubmissionOut | None
     my_score: MyScoreSummary | None
     round1_complete: bool
-    round2_approved: bool
+    round2_complete: bool
     round3_submitted: bool
 
 
