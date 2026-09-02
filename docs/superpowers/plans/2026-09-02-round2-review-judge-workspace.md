@@ -16,6 +16,14 @@
 
 **Out:** manual approval of objective answers, free-form Round 2 questions, judge assignment, shared score editing, browser-rendered PowerPoint previews, rubric changes.
 
+## Assumptions
+
+- Round 2 remains objective and automatically checked. No judge approval blocks Round 3.
+- Every judge can review every eligible team because no assignment model currently exists.
+- The team's current submission is the artifact offered for new judging work.
+- Finalization records the exact submission version reviewed.
+- All backend integration tests run only against a disposable database whose name ends in `_test`.
+
 ## File Map
 
 ### Backend
@@ -71,7 +79,13 @@ Expected: `pyproject.toml` and `uv.lock` contain the test dependencies without c
 
 In `backend/tests/conftest.py`, provide fixtures named `db_session`, `client`, `judge_headers`, and `admin_headers`. `db_session` reads `TEST_DATABASE_URL`, opens one outer transaction, and rolls it back after each test. `client` overrides `get_db` with that session and yields a FastAPI `TestClient`. The header fixtures create real users with the appropriate `UserRole`, issue JWTs through `app.core.security`, and return `{"Authorization": f"Bearer {token}"}`.
 
-Use a dedicated PostgreSQL test database, create tables from `Base.metadata` before the test session, and generate JWT headers through the application's existing security functions rather than bypassing role dependencies.
+Use a dedicated PostgreSQL database and refuse to start if the parsed database name does not end in `_test`. For local development, configure it explicitly before any test command:
+
+```bash
+export TEST_DATABASE_URL='postgresql+psycopg://postgres:postgres@localhost:5432/digihunt_test'
+```
+
+Create tables from `Base.metadata` before the test session. Generate JWT headers through the application's existing security functions rather than bypassing role dependencies.
 
 - [ ] **Step 3: Prove role enforcement through the harness**
 
@@ -81,7 +95,7 @@ Add a smoke test asserting an unauthenticated request to `GET /judging/assigned`
 
 ```bash
 cd backend
-TEST_DATABASE_URL="$DATABASE_URL" uv run pytest tests/test_judging.py -q
+uv run pytest tests/test_judging.py -q
 ```
 
 Expected: the authorization smoke tests pass.
@@ -134,9 +148,9 @@ Generate the migration, rename the generated file to `c4e8a12f7b90_judge_review_
 ```bash
 cd backend
 uv run alembic revision --autogenerate -m "add judge review workflow"
-uv run alembic upgrade head
-uv run alembic downgrade -1
-uv run alembic upgrade head
+DATABASE_URL="$TEST_DATABASE_URL" uv run alembic upgrade head
+DATABASE_URL="$TEST_DATABASE_URL" uv run alembic downgrade -1
+DATABASE_URL="$TEST_DATABASE_URL" uv run alembic upgrade head
 ```
 
 Expected: upgrade adds the nullable score foreign key, audit table, indexes on audit `team_id` and `created_at`, and no unrelated schema changes. Downgrade removes only these additions.
@@ -145,7 +159,7 @@ Expected: upgrade adds the nullable score foreign key, audit table, indexes on a
 
 ```bash
 cd backend
-TEST_DATABASE_URL="$DATABASE_URL" uv run pytest tests/test_judging.py -q
+uv run pytest tests/test_judging.py -q
 ```
 
 Expected: persistence tests pass.
@@ -219,7 +233,7 @@ In `backend/app/services/judging.py`, implement `derive_judging_status(progress,
 
 ```bash
 cd backend
-TEST_DATABASE_URL="$DATABASE_URL" uv run pytest tests/test_judging.py -k "status or review" -q
+uv run pytest tests/test_judging.py -k "status or review" -q
 ```
 
 Expected: all status and review contract tests pass.
@@ -267,7 +281,7 @@ Before accepting any score, require a current submission. On `finalize=True`, se
 
 ```bash
 cd backend
-TEST_DATABASE_URL="$DATABASE_URL" uv run pytest tests/test_judging.py -q
+uv run pytest tests/test_judging.py -q
 ```
 
 Expected: all judging tests pass with no query-per-team regressions in the queue fixture.
@@ -309,7 +323,7 @@ Extend each item in the existing `scores` response with `id`, `submission_id`, a
 
 ```bash
 cd backend
-TEST_DATABASE_URL="$DATABASE_URL" uv run pytest tests/test_admin_judging.py -q
+uv run pytest tests/test_admin_judging.py -q
 ```
 
 Expected: all reopen, audit, and role tests pass.
@@ -480,8 +494,8 @@ In backend integration tests, re-run participant answer-response assertions to e
 
 ```bash
 cd backend
-TEST_DATABASE_URL="$DATABASE_URL" uv run pytest -q
-uv run alembic check
+uv run pytest -q
+DATABASE_URL="$TEST_DATABASE_URL" uv run alembic check
 ```
 
 Expected: all tests pass and Alembic reports no pending model changes.

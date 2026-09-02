@@ -16,6 +16,12 @@ The existing system already provides most of the underlying workflow:
 
 The main gap is not a missing approval mechanism. It is that the judge experience only exposes a narrow summary and only lists teams after a presentation exists, making event progress and incomplete work difficult to monitor.
 
+## Decision Provenance and Assumptions
+
+The initial request did not explicitly choose between automatic and manual Round 2 approval. This design assumes automatic validation because the implemented Round 2 questions are objective multiple-choice questions, the backend already validates them against `correct_answer`, and manual approval would block team progression on judge availability. The later instruction to continue was treated as approval of that recommendation.
+
+The design also assumes every judge may review every eligible team because the current schema has no judge-assignment table. It assumes the latest current PowerPoint is the judging artifact, while finalized scores retain a reference to the exact reviewed version. If the event instead needs subjective Round 2 answers, assigned judges, or approval before Round 3 unlocks, those are product changes requiring a revised design rather than small implementation adjustments.
+
 ## Product Decision
 
 Round 2 objective answers remain automatically validated. Judges do not manually approve each answer.
