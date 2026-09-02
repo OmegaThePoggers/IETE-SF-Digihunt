@@ -17,17 +17,21 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db
 from app.core.deps import require_role
-from app.models import CaseFile, Question, Score, Submission, Team, TeamCase, TeamQuestion, User
+from app.models import Attempt, CaseFile, Question, Score, Submission, Team, TeamCase, TeamQuestion, User
 from app.models.enums import TeamQuestionStatus
 from app.schemas.judging import (
     AssignedCaseOut,
     AssignedSubmissionOut,
     AssignedTeamOut,
     MyScoreSummary,
+    Round2ReviewIn,
+    Round2ReviewOut,
     ScoreIn,
     ScoreOut,
     TeamJudgingDetailOut,
 )
+from app.services.round_gate import round2_fully_approved, round_fully_solved
+from app.websocket.manager import broadcast_from_sync
 
 router = APIRouter(
     prefix="/judging", tags=["judging"], dependencies=[Depends(require_role("judge"))]
@@ -54,12 +58,7 @@ def _get_case(db: Session, team_id: uuid.UUID) -> AssignedCaseOut | None:
 def list_assigned_teams(
     judge: User = Depends(require_role("judge")), db: Session = Depends(get_db)
 ):
-    rows = db.execute(
-        select(Submission, Team)
-        .join(Team, Team.id == Submission.team_id)
-        .where(Submission.is_current.is_(True))
-        .order_by(Team.team_code)
-    ).all()
+    teams = db.scalars(select(Team).order_by(Team.team_code)).all()
 
     my_scores = {
         s.team_id: s
@@ -67,21 +66,29 @@ def list_assigned_teams(
     }
 
     out = []
-    for submission, team in rows:
+    for team in teams:
+        submission = _get_current_submission(db, team.id)
         my_score = my_scores.get(team.id)
         out.append(
             AssignedTeamOut(
                 team_id=team.id,
                 team_code=team.team_code,
                 case=_get_case(db, team.id),
-                submission=AssignedSubmissionOut(
-                    id=submission.id,
-                    file_name=submission.file_name,
-                    submitted_at=submission.submitted_at,
+                submission=(
+                    AssignedSubmissionOut(
+                        id=submission.id,
+                        file_name=submission.file_name,
+                        submitted_at=submission.submitted_at,
+                    )
+                    if submission
+                    else None
                 ),
                 my_score=MyScoreSummary(total=my_score.total, finalized=my_score.finalized)
                 if my_score is not None
                 else None,
+                round1_complete=round_fully_solved(db, team.id, 1),
+                round2_approved=round2_fully_approved(db, team.id),
+                round3_submitted=submission is not None,
             )
         )
     return out
@@ -98,9 +105,6 @@ def get_team_judging_detail(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Team not found")
 
     submission = _get_current_submission(db, team_id)
-    if submission is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Team has no current submission")
-
     # Round 2 investigation summary — same shape as admin.py's get_team_detail,
     # only populated once every round-2 question is solved.
     round2_rows = db.scalars(
@@ -109,6 +113,23 @@ def get_team_judging_detail(
         .where(TeamQuestion.team_id == team_id, Question.round == 2)
     ).all()
     round2_summary: dict[str, str] | None = None
+    attempts = db.scalars(
+        select(Attempt).where(Attempt.team_question_id.in_([row.id for row in round2_rows])).order_by(Attempt.created_at.desc())
+    ).all() if round2_rows else []
+    latest_attempt = {}
+    for attempt in attempts:
+        latest_attempt.setdefault(attempt.team_question_id, attempt)
+    round2_review = [
+        Round2ReviewOut(
+            team_question_id=row.id,
+            category=row.question.category,
+            question_text=row.question.question_text,
+            submitted_answer=latest_attempt.get(row.id).selected_answer if row.id in latest_attempt else None,
+            ideal_answer=row.question.correct_answer,
+            judge_approved=row.judge_approved,
+        )
+        for row in round2_rows
+    ]
     if round2_rows:
         all_solved = all(tq.status == TeamQuestionStatus.solved for tq in round2_rows)
         if all_solved:
@@ -141,9 +162,54 @@ def get_team_judging_detail(
         case=_get_case(db, team_id),
         submission=AssignedSubmissionOut(
             id=submission.id, file_name=submission.file_name, submitted_at=submission.submitted_at
-        ),
+        ) if submission else None,
         round2_investigation_summary=round2_summary,
         my_score=my_score,
+        round2_review=round2_review,
+    )
+
+
+@router.post("/teams/{team_id}/round2/{team_question_id}/review", response_model=Round2ReviewOut)
+def review_round2_answer(
+    team_id: uuid.UUID,
+    team_question_id: uuid.UUID,
+    payload: Round2ReviewIn,
+    judge: User = Depends(require_role("judge")),
+    db: Session = Depends(get_db),
+):
+    row = db.scalar(
+        select(TeamQuestion).join(Question).where(
+            TeamQuestion.id == team_question_id,
+            TeamQuestion.team_id == team_id,
+            Question.round == 2,
+            TeamQuestion.status == TeamQuestionStatus.solved,
+        )
+    )
+    if row is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Round 2 answer is not ready for review")
+    latest = db.scalar(select(Attempt).where(Attempt.team_question_id == row.id).order_by(Attempt.created_at.desc()))
+    now = datetime.now(timezone.utc)
+    row.judge_approved = payload.approved
+    row.judge_reviewed_by = judge.id
+    row.judge_reviewed_at = now
+    if not payload.approved:
+        row.status = TeamQuestionStatus.available
+        row.assigned_to = None
+        row.claim_expires_at = None
+        row.solved_by = None
+        row.solved_at = None
+    db.commit()
+    if payload.approved and round2_fully_approved(db, team_id):
+        broadcast_from_sync(team_id, {"type": "round_unlocked", "round": "master"})
+    else:
+        broadcast_from_sync(team_id, {"type": "round_progress_updated", "round": 2})
+    return Round2ReviewOut(
+        team_question_id=row.id,
+        category=row.question.category,
+        question_text=row.question.question_text,
+        submitted_answer=latest.selected_answer if latest else None,
+        ideal_answer=row.question.correct_answer,
+        judge_approved=payload.approved,
     )
 
 

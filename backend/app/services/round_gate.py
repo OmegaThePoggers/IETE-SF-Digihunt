@@ -30,6 +30,19 @@ def round_fully_solved(db: Session, team_id, round_number: int) -> bool:
     return total > 0 and total == solved
 
 
+def round2_fully_approved(db: Session, team_id) -> bool:
+    total, approved = db.execute(
+        select(
+            func.count(),
+            func.count().filter(TeamQuestion.judge_approved.is_(True)),
+        )
+        .select_from(TeamQuestion)
+        .join(Question, Question.id == TeamQuestion.question_id)
+        .where(TeamQuestion.team_id == team_id, Question.round == 2)
+    ).one()
+    return total > 0 and total == approved
+
+
 def is_round_unlocked(db: Session, team: Team, round_number: int) -> bool:
     if round_number == 1:
         return True

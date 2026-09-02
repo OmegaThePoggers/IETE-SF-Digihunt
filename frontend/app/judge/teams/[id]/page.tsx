@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   downloadJudgeSubmission,
   getJudgeTeamDetail,
+  reviewRound2Answer,
   redirectOnJudgeError,
   submitScore,
   type TeamJudgingDetailOut,
@@ -89,6 +90,19 @@ export default function JudgeTeamDetailPage() {
     }
   }
 
+  async function handleReview(teamQuestionId: string, approved: boolean) {
+    setSaving(true);
+    try {
+      await reviewRound2Answer(teamId, teamQuestionId, approved);
+      load();
+    } catch (err) {
+      const msg = redirectOnJudgeError(err, router);
+      if (msg) setFormError(msg);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (error) {
     return (
       <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 font-mono-data text-sm text-destructive">
@@ -127,22 +141,43 @@ export default function JudgeTeamDetailPage() {
           </CardHeader>
           <CardContent className="flex flex-wrap items-center justify-between gap-3 font-mono-data text-sm text-foreground">
             <span>
-              {team.submission.file_name}
+              {team.submission ? team.submission.file_name : "NO PRESENTATION SUBMITTED"}
               <br />
-              <span className="text-xs text-muted-foreground">
+              {team.submission && <span className="text-xs text-muted-foreground">
                 {new Date(team.submission.submitted_at).toLocaleString()}
-              </span>
+              </span>}
             </span>
-            <Button
+            {team.submission && <Button
               variant="outline"
               size="sm"
               className="font-mono-data"
-              onClick={() => downloadJudgeSubmission(teamId, team.submission.file_name)}
+              onClick={() => downloadJudgeSubmission(teamId, team.submission!.file_name)}
             >
               DOWNLOAD
-            </Button>
+            </Button>}
           </CardContent>
         </Card>
+      </section>
+
+      <section>
+        <h2 className="mb-3 font-mono-data text-sm tracking-widest text-primary">ROUND 2 APPROVAL</h2>
+        <div className="grid gap-3">
+          {team.round2_review.map((question) => (
+            <Card key={question.team_question_id}>
+              <CardContent className="flex flex-col gap-3 py-4 font-mono-data text-sm">
+                <p className="text-primary">{question.category.toUpperCase()}</p>
+                <p>{question.question_text}</p>
+                <p>TEAM: {question.submitted_answer ?? "Awaiting submission"}</p>
+                <p>IDEAL: {question.ideal_answer}</p>
+                <p>STATUS: {question.judge_approved === true ? "APPROVED" : question.judge_approved === false ? "REJECTED" : "PENDING"}</p>
+                {question.submitted_answer && question.judge_approved !== true && <div className="flex gap-2">
+                  <Button size="sm" disabled={saving} onClick={() => handleReview(question.team_question_id, true)}>APPROVE</Button>
+                  <Button size="sm" variant="outline" disabled={saving} onClick={() => handleReview(question.team_question_id, false)}>REJECT</Button>
+                </div>}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </section>
 
       {team.round2_investigation_summary && (

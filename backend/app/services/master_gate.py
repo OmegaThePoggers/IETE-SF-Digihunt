@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models import Team
-from app.services.round_gate import round_fully_solved
+from app.services.round_gate import round2_fully_approved
 
 
 def is_master_eligible(db: Session, team: Team) -> bool:
@@ -11,4 +11,4 @@ def is_master_eligible(db: Session, team: Team) -> bool:
     round_gate.is_round_unlocked); it now gates the Master Terminal instead,
     and passing the Master Terminal is what gates Round 3.
     """
-    return round_fully_solved(db, team.id, 2)
+    return round2_fully_approved(db, team.id)

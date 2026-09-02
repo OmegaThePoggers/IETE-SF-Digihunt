@@ -459,8 +459,11 @@ export interface AssignedTeamOut {
   team_id: string;
   team_code: string;
   case: AssignedCaseOut | null;
-  submission: AssignedSubmissionOut;
+  submission: AssignedSubmissionOut | null;
   my_score: MyScoreSummary | null;
+  round1_complete: boolean;
+  round2_approved: boolean;
+  round3_submitted: boolean;
 }
 
 export function getAssignedTeams() {
@@ -483,13 +486,30 @@ export interface TeamJudgingDetailOut {
   team_id: string;
   team_code: string;
   case: AssignedCaseOut | null;
-  submission: AssignedSubmissionOut;
+  submission: AssignedSubmissionOut | null;
   round2_investigation_summary: Record<string, string> | null;
   my_score: ScoreOut | null;
+  round2_review: Round2ReviewOut[];
+}
+
+export interface Round2ReviewOut {
+  team_question_id: string;
+  category: string;
+  question_text: string;
+  submitted_answer: string | null;
+  ideal_answer: string;
+  judge_approved: boolean | null;
 }
 
 export function getJudgeTeamDetail(teamId: string) {
   return request<TeamJudgingDetailOut>(`/judging/teams/${teamId}`);
+}
+
+export function reviewRound2Answer(teamId: string, teamQuestionId: string, approved: boolean) {
+  return request<Round2ReviewOut>(`/judging/teams/${teamId}/round2/${teamQuestionId}/review`, {
+    method: "POST",
+    body: JSON.stringify({ approved }),
+  });
 }
 
 // Same pattern as downloadAdminSubmission — Bearer auth can't ride a plain
