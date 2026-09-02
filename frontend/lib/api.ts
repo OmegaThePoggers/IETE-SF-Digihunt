@@ -101,6 +101,12 @@ export interface RoundProgress {
   locked: boolean;
 }
 
+export interface GateProgress {
+  round_number: number;
+  ready: boolean;
+  unlocked: boolean;
+}
+
 export interface TeamMeOut {
   team_code: string;
   team_name: string;
@@ -109,7 +115,8 @@ export interface TeamMeOut {
     round1: RoundProgress;
     round2: RoundProgress;
     round3: RoundProgress;
-    master: { locked: boolean; solved: boolean };
+    round4: RoundProgress;
+    gates: GateProgress[];
   };
 }
 
@@ -138,26 +145,30 @@ export interface QuestionBoardItem {
   code_fragment: string | null;
 }
 
-export interface Round1BoardOut {
+export interface RoundBoardOut {
   questions: QuestionBoardItem[];
   all_complete: boolean;
-  access_key: string | null;
-}
-
-export function getRound1Board() {
-  return request<Round1BoardOut>("/questions/round/1");
-}
-
-export interface Round2BoardOut {
-  questions: QuestionBoardItem[];
-  all_complete: boolean;
+  next_gate_round: number | null;
   investigation_complete: boolean;
   awaiting_judge_approval: boolean;
   summary: Record<string, string> | null;
 }
 
+export function getRoundBoard(roundNumber: number) {
+  return request<RoundBoardOut>(`/questions/round/${roundNumber}`);
+}
+
+// Backwards-compatible aliases used by the round1/round2 feature containers.
+export function getRound1Board() {
+  return getRoundBoard(1);
+}
+
 export function getRound2Board() {
-  return request<Round2BoardOut>("/questions/round/2");
+  return getRoundBoard(2);
+}
+
+export function getRound3Board() {
+  return getRoundBoard(3);
 }
 
 export interface IncidentOut {
@@ -251,26 +262,33 @@ export function getSubmissionHistory() {
   return request<SubmissionOut[]>("/submissions/history");
 }
 
-// ---- Master Terminal ----------------------------------------------------
+// ---- Cipher gates --------------------------------------------------------
+// Finishing round N-1 yields a per-team key; the team unscrambles it here to
+// open round N. Replaces the old one-off Master Terminal.
 
-export interface MasterStatusOut {
-  eligible: boolean;
-  solved: boolean;
+export interface GateStatusOut {
+  round_number: number;
+  source_round: number;
+  ready: boolean;
+  unlocked: boolean;
+  scrambled_key: string | null;
+  attempts: number;
 }
 
-export function getMasterStatus() {
-  return request<MasterStatusOut>("/master/status");
+export function getGate(roundNumber: number) {
+  return request<GateStatusOut>(`/gates/${roundNumber}`);
 }
 
-export interface MasterVerifyOut {
+export interface GateUnlockOut {
   correct: boolean;
   message: string;
+  unlocked: boolean;
 }
 
-export function verifyMasterCode(code: string) {
-  return request<MasterVerifyOut>("/master/verify", {
+export function unlockGate(roundNumber: number, key: string) {
+  return request<GateUnlockOut>(`/gates/${roundNumber}/unlock`, {
     method: "POST",
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ key }),
   });
 }
 
@@ -302,7 +320,8 @@ export interface AdminTeamListItem {
   member_count: number;
   round1: AdminRoundProgress;
   round2: AdminRoundProgress;
-  round3_case: string | null;
+  round3: AdminRoundProgress;
+  round4_case: string | null;
   submitted: boolean;
 }
 
@@ -468,7 +487,8 @@ export interface AssignedTeamOut {
   my_score: MyScoreSummary | null;
   round1_complete: boolean;
   round2_complete: boolean;
-  round3_submitted: boolean;
+  round3_complete: boolean;
+  round4_submitted: boolean;
 }
 
 export function getAssignedTeams() {
