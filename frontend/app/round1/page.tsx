@@ -171,6 +171,10 @@ export default function Round1Page() {
     }
   }
 
+  function handleOpen(id: string) {
+    dispatch({ type: "selected-clue", id });
+  }
+
   async function handleClaim(id: string) {
     dispatch({ type: "selected-clue", id });
     const clue = state.board?.questions.find((question) => question.team_question_id === id);
@@ -203,6 +207,7 @@ export default function Round1Page() {
     <Round1View
       model={model}
       onBack={() => router.push("/dashboard")}
+      onOpen={handleOpen}
       onClaim={handleClaim}
       onSelect={(answer) => dispatch({ type: "select", answer })}
       onSubmit={handleSubmit}

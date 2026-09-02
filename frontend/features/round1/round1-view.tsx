@@ -16,6 +16,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 type Round1ViewProps = {
   model: Round1ViewModel;
   onBack: () => void;
+  onOpen: (id: string) => void;
   onClaim: (id: string) => void;
   onSelect: (answer: string) => void;
   onSubmit: () => void;
@@ -32,7 +33,7 @@ function clueStatusLabel(clue: Round1Clue, mine: boolean) {
   return mine ? "Open" : `Held by ${clue.claimedByName ?? "team"}`;
 }
 
-export function Round1View({ model, onBack, onClaim, onSelect, onSubmit, onRelease }: Round1ViewProps) {
+export function Round1View({ model, onBack, onOpen, onClaim, onSelect, onSubmit, onRelease }: Round1ViewProps) {
   const current = model.currentIndex >= 0 ? model.clues[model.currentIndex] : null;
   const solved = model.clues.filter((clue) => clue.status === "solved").length;
   const total = model.clues.length;
@@ -43,7 +44,7 @@ export function Round1View({ model, onBack, onClaim, onSelect, onSubmit, onRelea
       <EventHeader
         eyebrow="Round 1 // The Digital Trail"
         title="Clue workspace"
-        description="Click any unclaimed clue to investigate it. Ownership is visible so teammates do not collide."
+        description="Click any clue to inspect it. Use the dedicated claim button inside the workspace when you are ready to own it."
         actions={<Button variant="outline" onClick={onBack}>Mission control</Button>}
       />
 
@@ -59,6 +60,7 @@ export function Round1View({ model, onBack, onClaim, onSelect, onSubmit, onRelea
                 const active = index === model.currentIndex;
                 const mine = clue.status === "claimed" && clue.claimedByName === model.meName;
                 const clickable = clue.status === "available" || mine;
+                const actionLabel = mine ? "Open" : "View";
                 const status = clue.status === "solved" ? "complete" : active ? "active" : "upcoming";
                 const body = (
                   <>
@@ -74,9 +76,9 @@ export function Round1View({ model, onBack, onClaim, onSelect, onSubmit, onRelea
                     {clickable ? (
                       <button
                         type="button"
-                        aria-label={`${mine ? "Open" : "Claim"} clue ${index + 1}`}
+                        aria-label={`${actionLabel} clue ${index + 1}`}
                         disabled={model.busy}
-                        onClick={() => onClaim(clue.id)}
+                        onClick={() => onOpen(clue.id)}
                         className={`font-mono-data flex min-h-14 w-full items-center gap-3 px-3 py-3 text-left text-xs tracking-[0.12em] uppercase transition-colors hover:bg-primary/10 hover:text-primary disabled:cursor-wait ${active ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : "text-muted-foreground"}`}
                       >
                         {body}

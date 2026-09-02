@@ -83,6 +83,12 @@ function Round1PreviewSurface({ state }: { state: Round1PreviewState }) {
         onBack={() => {
           router.push(toDevPreviewHref("/dashboard"));
         }}
+        onOpen={(id) => setModel((current) => {
+          const currentIndex = current.clues.findIndex((clue) => clue.id === id);
+          return currentIndex >= 0
+            ? { ...current, currentIndex, selectedAnswer: "", feedback: null }
+            : current;
+        })}
         onClaim={(id) => setModel((current) => {
           const currentIndex = current.clues.findIndex((clue) => clue.id === id);
           return {
