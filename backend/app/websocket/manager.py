@@ -26,6 +26,14 @@ class ConnectionManager:
         self.active.setdefault(team_id, set()).add(websocket)
         counts = self.online_counts.setdefault(team_id, {})
         counts[user_id] = counts.get(user_id, 0) + 1
+        await websocket.send_text(
+            json.dumps(
+                {
+                    "type": "presence_snapshot",
+                    "user_ids": [str(online_user_id) for online_user_id in counts],
+                }
+            )
+        )
         if counts[user_id] == 1:
             await self.broadcast(team_id, {"type": "member_online", "user_id": str(user_id)})
 

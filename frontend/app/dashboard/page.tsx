@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { DashboardView } from "@/features/dashboard/dashboard-view";
+import { applyPresenceEvent } from "@/features/dashboard/presence";
 import type {
   DashboardRound,
   DashboardRoundState,
@@ -157,14 +158,12 @@ export default function DashboardPage() {
   useTeamSocket(
     useCallback(
       (event) => {
-        if (event.type === "member_online" && typeof event.user_id === "string") {
-          setOnlineIds((current) => new Set(current).add(event.user_id as string));
-        } else if (event.type === "member_offline" && typeof event.user_id === "string") {
-          setOnlineIds((current) => {
-            const next = new Set(current);
-            next.delete(event.user_id as string);
-            return next;
-          });
+        if (
+          event.type === "presence_snapshot"
+          || event.type === "member_online"
+          || event.type === "member_offline"
+        ) {
+          setOnlineIds((current) => applyPresenceEvent(current, event));
         }
         if (REFETCH_EVENTS.has(event.type)) fetchTeam();
       },
