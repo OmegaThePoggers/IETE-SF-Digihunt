@@ -4,6 +4,7 @@ from app.models.enums import TeamQuestionStatus, TeamStatus, UserRole
 from app.models.event_settings import EventSettings
 from app.models.master_code import MasterAttempt, MasterCode
 from app.models.question import Question, QuestionTemplate
+from app.models.round_key import RoundKeyAttempt, RoundUnlock
 from app.models.score import Score
 from app.models.submission import Submission
 from app.models.team import Team
@@ -22,6 +23,8 @@ __all__ = [
     "MasterCode",
     "Question",
     "QuestionTemplate",
+    "RoundKeyAttempt",
+    "RoundUnlock",
     "Score",
     "Submission",
     "Team",
