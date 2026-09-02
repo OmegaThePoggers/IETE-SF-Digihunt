@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.db import get_db
 from app.core.deps import get_current_user
-from app.models import MasterAttempt, Question, Team, TeamQuestion, User
+from app.models import MasterAttempt, Question, Submission, Team, TeamQuestion, User
 from app.models.enums import TeamQuestionStatus
 from app.schemas.team import MasterProgress, MemberOut, RoundProgress, RoundsOut, TeamMeOut
 from app.services.master_gate import is_master_eligible
@@ -26,6 +26,15 @@ def _round_progress(db: Session, team_id, round_num: int, locked: bool) -> Round
     return RoundProgress(solved=solved, total=total, locked=locked)
 
 
+def _round3_progress(db: Session, team_id, locked: bool) -> RoundProgress:
+    submitted = db.scalar(
+        select(Submission.id).where(
+            Submission.team_id == team_id, Submission.is_current.is_(True)
+        )
+    ) is not None
+    return RoundProgress(solved=int(submitted), total=1, locked=locked)
+
+
 @router.get("/me", response_model=TeamMeOut)
 def get_my_team(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.team_id is None:
@@ -45,8 +54,8 @@ def get_my_team(user: User = Depends(get_current_user), db: Session = Depends(ge
             round2=_round_progress(
                 db, user.team_id, 2, locked=not is_round_unlocked(db, team, 2)
             ),
-            round3=_round_progress(
-                db, user.team_id, 3, locked=not is_round_unlocked(db, team, 3)
+            round3=_round3_progress(
+                db, user.team_id, locked=not is_round_unlocked(db, team, 3)
             ),
             master=MasterProgress(
                 locked=not is_master_eligible(db, team),

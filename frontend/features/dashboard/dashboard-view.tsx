@@ -34,6 +34,35 @@ function RoundState({ round }: { round: DashboardRound }) {
   );
 }
 
+function RoundProgress({ round }: { round: DashboardRound }) {
+  const isFinalSubmission = round.id === "round3";
+  const total = isFinalSubmission ? 1 : round.total;
+  const solved = isFinalSubmission && round.state === "completed" ? 1 : round.solved;
+  const percentage = total > 0 ? Math.round((solved / total) * 100) : 0;
+
+  return (
+    <div className="mt-5 max-w-xl" data-stage-progress={round.id}>
+      <div className="mb-2 flex items-center justify-between font-mono-data text-[10px] tracking-[0.14em] text-muted-foreground uppercase">
+        <span>Stage progress</span>
+        <span>{percentage}%</span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label={`Round ${round.index} progress`}
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={solved}
+        className="h-1.5 overflow-hidden bg-border"
+      >
+        <span
+          className={`block h-full transition-[width] ${round.state === "locked" ? "bg-muted-foreground/35" : "bg-primary"}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function DashboardView({ model, onNavigate, onLogout }: DashboardViewProps) {
   const onlineCount = model.members.filter((member) => member.presence === "online").length;
 
@@ -117,6 +146,7 @@ export function DashboardView({ model, onNavigate, onLogout }: DashboardViewProp
                         {round.title}
                       </h3>
                       <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{round.description}</p>
+                      {round.id !== "master" ? <RoundProgress round={round} /> : null}
                     </div>
                     <div className="col-start-2 self-end sm:col-start-3 sm:text-right">
                       <p className="font-mono-data text-[11px] text-muted-foreground">

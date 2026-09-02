@@ -71,6 +71,14 @@ describe("DashboardView", () => {
     expect(onNavigate).toHaveBeenCalledWith("/round1");
   });
 
+  it("shows numeric progress bars for Rounds 1, 2, and 3", () => {
+    render(<DashboardView model={activeDashboardFixture} onNavigate={vi.fn()} onLogout={vi.fn()} />);
+
+    expect(screen.getByRole("progressbar", { name: "Round 01 progress" })).toHaveAttribute("aria-valuenow", "3");
+    expect(screen.getByRole("progressbar", { name: "Round 02 progress" })).toHaveAttribute("aria-valuenow", "1");
+    expect(screen.getByRole("progressbar", { name: "Round 03 progress" })).toHaveAttribute("aria-valuemax", "1");
+  });
+
   it("keeps team code and presence secondary while exposing readable presence labels", () => {
     render(<DashboardView model={activeDashboardFixture} onNavigate={vi.fn()} onLogout={vi.fn()} />);
 
