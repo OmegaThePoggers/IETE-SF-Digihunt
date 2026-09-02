@@ -1,0 +1,12 @@
+.venv
+venv
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.env
+.git
+.gitignore
+alembic/versions/__pycache__
+tests

@@ -1,0 +1,83 @@
+name: digihunt
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-digihunt}
+      POSTGRES_USER: ${POSTGRES_USER:-digihunt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-digihunt-local-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    networks:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    init: true
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-digihunt}:${POSTGRES_PASSWORD:-digihunt-local-password}@db:5432/${POSTGRES_DB:-digihunt}
+      JWT_SECRET: ${JWT_SECRET:-local-only-change-before-deployment}
+      UPLOAD_DIRECTORY: /data/uploads
+      PPT_DIRECTORY: /data/ppts
+      CORS_ORIGINS: '["${FRONTEND_ORIGIN:-http://localhost:3000}"]'
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - upload_data:/data/uploads
+      - ppt_data:/data/ppts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      - backend
+      - public
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+    networks:
+      - public
+
+networks:
+  backend:
+    internal: true
+  public:
+
+volumes:
+  postgres_data:
+  upload_data:
+  ppt_data:

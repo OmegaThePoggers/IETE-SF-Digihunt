@@ -12,6 +12,55 @@ digihunt/
 └── PLAN.md     phased build plan
 ```
 
+## Run with Docker
+
+Docker is the recommended way to run the complete local stack. It starts PostgreSQL, applies Alembic migrations, and serves the FastAPI backend and Next.js frontend.
+
+```bash
+# Optional: override the local-development defaults
+cp .env.docker.example .env
+
+# Build and start all services
+docker compose up --build -d
+
+# Check health and open the application
+docker compose ps
+# Frontend: http://localhost:3000
+# Backend API docs: http://localhost:8000/docs
+```
+
+The database and uploaded presentation files are retained in named Docker volumes. PostgreSQL is private to the Compose network and is not exposed on the host.
+
+Common operations:
+
+```bash
+# Follow all service logs
+docker compose logs -f
+
+# Follow one service
+docker compose logs -f backend
+
+# Apply migrations manually
+docker compose exec backend alembic upgrade head
+
+# Seed demo teams and judges
+docker compose exec backend python -m app.seed
+
+# Stop containers while preserving data
+docker compose down
+
+# Rebuild after dependency or Dockerfile changes
+docker compose up --build -d
+```
+
+To permanently delete the local Docker database and uploaded files, run the following destructive reset command:
+
+```bash
+docker compose down --volumes
+```
+
+Before any shared or production deployment, copy `.env.docker.example` to `.env` and replace `POSTGRES_PASSWORD` and `JWT_SECRET`. `NEXT_PUBLIC_API_URL` must be the backend URL reachable by participants' browsers, not the backend Compose service name.
+
 ## Run — Frontend
 
 ```bash

@@ -1,6 +1,6 @@
 # Docker Stack Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Start the complete DigiHunt application with one Docker Compose command.
 
@@ -14,27 +14,27 @@
 
 **Files:** `backend/Dockerfile`, `backend/.dockerignore`, `frontend/Dockerfile`, `frontend/.dockerignore`, `frontend/next.config.ts`
 
-- [ ] Enable Next.js `output: "standalone"`.
-- [ ] Build the backend from its lock file and run it as UID 10001.
-- [ ] Build the frontend in dependency, build, and runtime stages and run it as `node`.
-- [ ] Exclude local dependencies, caches, environment files, runtime data, and Git metadata from contexts.
-- [ ] Build both images successfully.
+- [x] Enable Next.js `output: "standalone"`.
+- [x] Build the backend from its lock file and run it as UID 10001.
+- [x] Build the frontend in dependency, build, and runtime stages and run it as `node`.
+- [x] Exclude local dependencies, caches, environment files, runtime data, and Git metadata from contexts.
+- [x] Build both images successfully.
 
 ### Task 2: Add Compose orchestration
 
 **Files:** `compose.yaml`, `.env.docker.example`
 
-- [ ] Add PostgreSQL with a health check and persistent volume.
-- [ ] Add backend migration/start command, API health check, private database URL, CORS configuration, and PPT volume.
-- [ ] Add frontend build argument, API URL, health check, and backend dependency.
-- [ ] Validate the rendered Compose configuration.
+- [x] Add PostgreSQL with a health check and persistent volume.
+- [x] Add backend migration/start command, API health check, private database URL, CORS configuration, and PPT volume.
+- [x] Add frontend build argument, API URL, health check, and backend dependency.
+- [x] Validate the rendered Compose configuration.
 
 ### Task 3: Validate and document
 
 **Files:** `README.md`
 
-- [ ] Start the stack with a clean build.
-- [ ] Verify container health, database connectivity, backend health JSON, frontend HTML, and writable PPT storage.
-- [ ] Verify restart preserves database and PPT volumes.
-- [ ] Document setup, logs, migrations, seed data, shutdown, and destructive reset commands.
-- [ ] Run existing frontend tests, lint, and production build before committing.
+- [x] Start the stack with a clean build.
+- [x] Verify container health, database connectivity, backend health JSON, frontend HTML, and writable PPT storage.
+- [x] Verify restart preserves database and PPT volumes.
+- [x] Document setup, logs, migrations, seed data, shutdown, and destructive reset commands.
+- [x] Run existing frontend tests, lint, and production build before committing.
