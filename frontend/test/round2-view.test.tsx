@@ -9,6 +9,7 @@ import {
   teammateClaimedRound2Fixture,
   incorrectRound2Fixture,
   loadingRound2Fixture,
+  awaitingReviewRound2Fixture,
 } from "@/features/round2/round2-fixtures";
 import { Round2View } from "@/features/round2/round2-view";
 
@@ -84,5 +85,14 @@ describe("Round2View", () => {
     expect(screen.getByRole("button", { name: /mission control/i })).toHaveFocus();
     await user.tab();
     expect(screen.getByRole("tab", { name: /server log/i })).toHaveFocus();
+  });
+
+  it("keeps submitted answers visible but immutable while judge review is pending", () => {
+    render(<Round2View model={awaitingReviewRound2Fixture} {...callbacks()} />);
+
+    expect(screen.getByText(/awaiting judge approval/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/✓ solved/i)).toHaveLength(3);
+    expect(screen.queryByRole("button", { name: /claim/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^submit$/i })).not.toBeInTheDocument();
   });
 });

@@ -62,6 +62,15 @@ describe("DashboardView", () => {
     expect(screen.getByText("02", { selector: '[aria-hidden="true"]' })).toHaveClass("text-primary");
   });
 
+  it("lets participants reopen completed rounds for review", async () => {
+    const onNavigate = vi.fn();
+    const user = userEvent.setup();
+    render(<DashboardView model={activeDashboardFixture} onNavigate={onNavigate} onLogout={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /review round 01/i }));
+    expect(onNavigate).toHaveBeenCalledWith("/round1");
+  });
+
   it("keeps team code and presence secondary while exposing readable presence labels", () => {
     render(<DashboardView model={activeDashboardFixture} onNavigate={vi.fn()} onLogout={vi.fn()} />);
 

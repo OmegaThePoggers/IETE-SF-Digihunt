@@ -113,6 +113,16 @@ uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port "$PORT"
 
 Run migrations once in the release phase, not in every application process. `uv` makes dependency resolution and environment builds faster and reproducible; it does not make the running FastAPI application itself faster.
 
+## Competition workflow
+
+1. Teams solve Round 1 and can revisit its recovered access key read-only.
+2. Teams submit every Round 2 answer. A judge sees each submitted answer beside its ideal answer and approves or rejects it.
+3. A rejected Round 2 answer reopens only that question for correction. Approved answers remain read-only.
+4. Once every Round 2 answer is judge-approved, the Master Terminal unlocks. Passing it unlocks Round 3.
+5. A team uploads one final `.ppt` or `.pptx` presentation. That final submission is visible to the team and judges but cannot be replaced.
+
+The dashboard provides `Review round` controls for completed stages. Judges see per-team Round 1, 2, and 3 status ticks, the Round 2 review queue, and final presentation downloads.
+
 ## Status
 
 Build complete (G1–G11). Full spec journey — register, Round 1–3, admin,
@@ -149,8 +159,8 @@ There is no seeded admin account — create one directly in the `users` table
 | `/questions/{id}/claim` \| `/release` \| `/answer` | POST | atomic claim, round-agnostic |
 | `/incident` | GET | shared Round 2 case narrative |
 | `/cases/me` | GET | 403 until Round 2 complete |
-| `/submissions` | POST | PPTX upload, versioned |
-| `/submissions/current` \| `/history` | GET | |
+| `/submissions` | POST | one final `.ppt` or `.pptx` upload, then locked |
+| `/submissions/current` \| `/history` | GET | current final submission |
 | `/submissions/{id}/download` | GET | own team only |
 | `/master/status` \| `/master/verify` | GET / POST | verify rate-limited 10/min |
 
@@ -160,11 +170,12 @@ There is no seeded admin account — create one directly in the `users` table
 tools (reset-team, reset-question, unlock-round, assign-case).
 
 **Judge** (role=judge, prefix `/judging`): `/assigned`, `/teams/{id}`,
+`/teams/{id}/round2/{team_question_id}/review` (POST),
 `/teams/{id}/download`, `/teams/{id}/score` (POST, one-way finalize).
 
 **Realtime**: `GET /ws?token=<jwt>` — team-scoped WebSocket. Origin checked
 against `CORS_ORIGINS` at handshake. Events: `question_claimed/released/solved`,
-`round_progress_updated`, `round_unlocked`, `submission_uploaded/replaced`,
+`round_progress_updated`, `round_unlocked`, `submission_uploaded`,
 `master_terminal_unlocked`, `member_online/offline`.
 
 **Frontend pages**: `/`, `/register`, `/login`, `/dashboard`, `/round1`,

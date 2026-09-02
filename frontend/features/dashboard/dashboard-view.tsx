@@ -122,6 +122,16 @@ export function DashboardView({ model, onNavigate, onLogout }: DashboardViewProp
                       <p className="font-mono-data text-[11px] text-muted-foreground">
                         {round.total > 0 ? `${round.solved} / ${round.total} solved` : "Gate controlled"}
                       </p>
+                      {round.state !== "locked" ? (
+                        <Button
+                          variant="quiet"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => onNavigate(round.href)}
+                        >
+                          {round.state === "completed" ? `Review round ${round.index}` : `Open round ${round.index}`}
+                        </Button>
+                      ) : null}
                     </div>
                   </li>
                 );

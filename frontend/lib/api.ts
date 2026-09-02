@@ -148,6 +148,7 @@ export interface Round2BoardOut {
   questions: QuestionBoardItem[];
   all_complete: boolean;
   investigation_complete: boolean;
+  awaiting_judge_approval: boolean;
   summary: Record<string, string> | null;
 }
 

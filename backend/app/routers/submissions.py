@@ -15,7 +15,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -116,6 +116,15 @@ async def upload_submission(
 
     team_id = user.team_id
     team = db.get(Team, team_id)
+    if db.scalar(
+        select(Submission.id).where(
+            Submission.team_id == team_id, Submission.is_current.is_(True)
+        )
+    ):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "A final submission already exists and cannot be replaced",
+        )
     max_version = db.scalar(
         select(Submission.version)
         .where(Submission.team_id == team_id)
@@ -143,11 +152,6 @@ async def upload_submission(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid file name")
     dest_path.write_bytes(content)
 
-    db.execute(
-        update(Submission)
-        .where(Submission.team_id == team_id, Submission.is_current.is_(True))
-        .values(is_current=False)
-    )
     submission = Submission(
         team_id=team_id,
         uploaded_by=user.id,

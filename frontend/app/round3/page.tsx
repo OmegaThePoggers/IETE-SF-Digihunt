@@ -88,6 +88,7 @@ export default function Round3Page() {
 
   async function handleFile(file: File | undefined | null) {
     if (!file) return;
+    if (current) return;
     setUploadError(null);
     setUploading(true);
     try {
@@ -96,6 +97,8 @@ export default function Round3Page() {
     } catch (err) {
       if (err instanceof ApiError && err.status === 423) {
         setUploadError("UPLOAD FAILED — Submission deadline has passed.");
+      } else if (err instanceof ApiError && err.status === 409) {
+        setUploadError("UPLOAD LOCKED — A final submission already exists.");
       } else {
         setUploadError("UPLOAD FAILED — Check file type and size.");
       }
@@ -108,6 +111,7 @@ export default function Round3Page() {
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setDragOver(false);
+    if (current) return;
     handleFile(e.dataTransfer.files?.[0]);
   }
 
@@ -215,7 +219,12 @@ export default function Round3Page() {
             Submit — the action
           </p>
 
-          <div
+          {current ? (
+            <div className="mb-6 border border-primary bg-primary/10 px-6 py-8 text-center">
+              <p className="font-mono-data text-sm font-bold text-primary">FINAL SUBMISSION LOCKED</p>
+              <p className="mt-2 font-mono-data text-xs text-muted-foreground">Your uploaded presentation remains available below for review.</p>
+            </div>
+          ) : <div
             onDragOver={(e) => {
               e.preventDefault();
               setDragOver(true);
@@ -244,7 +253,7 @@ export default function Round3Page() {
             >
               [ SELECT FILE ]
             </Button>
-          </div>
+          </div>}
 
           {uploadError && (
             <p className="mb-6 border border-destructive/40 bg-destructive/10 px-4 py-2 font-mono-data text-sm text-destructive">
