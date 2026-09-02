@@ -66,11 +66,11 @@
 
 - [ ] **Step 1: Add backend development dependencies**
 
-Add a development dependency group containing `pytest`, `pytest-asyncio`, and `httpx`, then run:
+Add a development dependency group containing `pytest`, `pytest-asyncio`, and `httpx2`, then run:
 
 ```bash
 cd backend
-uv add --dev pytest pytest-asyncio httpx
+uv add --dev pytest pytest-asyncio httpx2
 ```
 
 Expected: `pyproject.toml` and `uv.lock` contain the test dependencies without changing runtime dependencies.
