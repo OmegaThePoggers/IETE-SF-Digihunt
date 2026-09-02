@@ -28,15 +28,13 @@ async function fillRegistration() {
   const user = userEvent.setup();
   await user.type(screen.getByLabelText("Team name"), " Null Pointers ");
 
+  await user.type(screen.getByLabelText("Team password"), "teamsecret");
+
   for (let index = 1; index <= 3; index += 1) {
     await user.type(screen.getByLabelText(`Member ${index} name`), `Member ${index}`);
     await user.type(
       screen.getByLabelText(`Member ${index} email`),
       `member${index}@example.com`,
-    );
-    await user.type(
-      screen.getByLabelText(`Member ${index} password`),
-      `password${index}`,
     );
   }
 
@@ -110,16 +108,17 @@ describe("access pages", () => {
     expect(screen.getByRole("button", { name: "Enter the hunt" })).toBeEnabled();
   });
 
-  it("exposes unique registration labels and new-password autocomplete", () => {
+  it("exposes unique registration labels and one shared team password", () => {
     render(<RegisterPage />);
 
     expect(screen.getByLabelText("Team name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Member 1 name")).toHaveAttribute("autocomplete", "name");
-    expect(screen.getByLabelText("Member 2 email")).toHaveAttribute("autocomplete", "email");
-    expect(screen.getByLabelText("Member 3 password")).toHaveAttribute(
+    expect(screen.getByLabelText("Team password")).toHaveAttribute(
       "autocomplete",
       "new-password",
     );
+    expect(screen.getByLabelText("Member 1 name")).toHaveAttribute("autocomplete", "name");
+    expect(screen.getByLabelText("Member 2 email")).toHaveAttribute("autocomplete", "email");
+    expect(screen.queryByLabelText("Member 3 password")).not.toBeInTheDocument();
   });
 
   it("announces registration validation feedback without calling the API", async () => {
@@ -147,10 +146,11 @@ describe("access pages", () => {
     expect(screen.getByRole("button", { name: "Registering team" })).toBeDisabled();
     expect(mockedRegisterTeam).toHaveBeenCalledWith({
       team_name: "Null Pointers",
+      team_password: "teamsecret",
       members: [
-        { name: "Member 1", email: "member1@example.com", password: "password1" },
-        { name: "Member 2", email: "member2@example.com", password: "password2" },
-        { name: "Member 3", email: "member3@example.com", password: "password3" },
+        { name: "Member 1", email: "member1@example.com" },
+        { name: "Member 2", email: "member2@example.com" },
+        { name: "Member 3", email: "member3@example.com" },
       ],
     });
 

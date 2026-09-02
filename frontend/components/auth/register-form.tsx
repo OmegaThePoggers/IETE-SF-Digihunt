@@ -7,7 +7,7 @@ import { SectionMarker } from "@/components/event/section-marker";
 import { Button } from "@/components/ui/button";
 import type { MemberIn } from "@/lib/api";
 
-type RegistrationPayload = { team_name: string; members: MemberIn[] };
+type RegistrationPayload = { team_name: string; team_password: string; members: MemberIn[] };
 type RegisterFormProps = {
   error: string | null;
   submitting: boolean;
@@ -15,11 +15,12 @@ type RegisterFormProps = {
   onValidationError: (message: string) => void;
 };
 
-const EMPTY_MEMBER = { name: "", email: "", password: "" };
+const EMPTY_MEMBER = { name: "", email: "" };
 const inputClass = "focus-ring w-full border border-border bg-input px-3 py-3 font-mono-data text-sm text-foreground outline-none placeholder:text-muted-foreground/60";
 
 function RegisterForm({ error, submitting, onSubmit, onValidationError }: RegisterFormProps) {
   const [teamName, setTeamName] = useState("");
+  const [teamPassword, setTeamPassword] = useState("");
   const [members, setMembers] = useState<MemberIn[]>([
     { ...EMPTY_MEMBER }, { ...EMPTY_MEMBER }, { ...EMPTY_MEMBER },
   ]);
@@ -30,9 +31,10 @@ function RegisterForm({ error, submitting, onSubmit, onValidationError }: Regist
 
   function validate() {
     if (!teamName.trim()) return "Team name is required.";
+    if (!teamPassword) return "Team password is required.";
+    if (teamPassword.length < 8) return "Team password must be at least 8 characters.";
     const emails = members.map((member) => member.email.trim().toLowerCase());
-    if (members.some((member) => !member.name.trim() || !member.email.trim() || !member.password)) return "All 3 members need a name, email, and password.";
-    if (members.some((member) => member.password.length < 8)) return "Passwords must be at least 8 characters.";
+    if (members.some((member) => !member.name.trim() || !member.email.trim())) return "All 3 members need a name and email.";
     if (new Set(emails).size !== emails.length) return "Member emails must be unique.";
     return null;
   }
@@ -44,7 +46,7 @@ function RegisterForm({ error, submitting, onSubmit, onValidationError }: Regist
       onValidationError(validationError);
       return;
     }
-    void onSubmit({ team_name: teamName.trim(), members });
+    void onSubmit({ team_name: teamName.trim(), team_password: teamPassword, members });
   }
 
   return (
@@ -54,6 +56,12 @@ function RegisterForm({ error, submitting, onSubmit, onValidationError }: Regist
         <input id="team-name" className={inputClass} value={teamName} onChange={(event) => setTeamName(event.target.value)} autoComplete="organization" placeholder="e.g. Null Pointers" />
       </div>
 
+      <div className="space-y-2">
+        <label htmlFor="team-password" className="font-mono-data text-xs uppercase tracking-[0.18em] text-muted-foreground">Team password</label>
+        <input id="team-password" className={inputClass} type="password" value={teamPassword} onChange={(event) => setTeamPassword(event.target.value)} autoComplete="new-password" placeholder="One 8+ character password for all 3 members" />
+        <p className="text-xs leading-5 text-muted-foreground">Every member logs in with their own email and this shared team password.</p>
+      </div>
+
       <div>
         <SectionMarker index="03" label="Team roster" headingLevel={2} />
         <div className="grid gap-px bg-border md:grid-cols-3">
@@ -61,12 +69,12 @@ function RegisterForm({ error, submitting, onSubmit, onValidationError }: Regist
             <EventPanel key={index} className="border-0 bg-card p-4 sm:p-5">
               <h3 className="font-mono-data mb-5 text-xs font-bold uppercase tracking-[0.2em] text-primary">Member {index + 1}</h3>
               <div className="space-y-4">
-                {(["name", "email", "password"] as const).map((field) => {
+                {(["name", "email"] as const).map((field) => {
                   const label = `Member ${index + 1} ${field}`;
                   return (
                     <div key={field} className="space-y-1.5">
                       <label htmlFor={`member-${index}-${field}`} className="font-mono-data text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">{label}</label>
-                      <input id={`member-${index}-${field}`} className={inputClass} type={field === "password" ? "password" : field === "email" ? "email" : "text"} value={member[field]} onChange={(event) => updateMember(index, field, event.target.value)} autoComplete={field === "password" ? "new-password" : field} placeholder={field === "password" ? "8+ characters" : undefined} />
+                      <input id={`member-${index}-${field}`} className={inputClass} type={field === "email" ? "email" : "text"} value={member[field]} onChange={(event) => updateMember(index, field, event.target.value)} autoComplete={field} />
                     </div>
                   );
                 })}

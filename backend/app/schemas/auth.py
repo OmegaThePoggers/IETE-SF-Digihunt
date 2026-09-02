@@ -6,11 +6,11 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 class MemberIn(BaseModel):
     name: str = Field(min_length=1)
     email: EmailStr
-    password: str = Field(min_length=8)
 
 
 class RegisterTeamIn(BaseModel):
     team_name: str = Field(min_length=1)
+    team_password: str = Field(min_length=8)
     members: list[MemberIn] = Field(min_length=3, max_length=3)
 
     @field_validator("members")

@@ -46,7 +46,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export interface MemberIn {
   name: string;
   email: string;
-  password: string;
 }
 
 export interface RegisterTeamOut {
@@ -55,7 +54,7 @@ export interface RegisterTeamOut {
   members: { name: string; email: string }[];
 }
 
-export function registerTeam(payload: { team_name: string; members: MemberIn[] }) {
+export function registerTeam(payload: { team_name: string; team_password: string; members: MemberIn[] }) {
   return request<RegisterTeamOut>("/auth/register-team", {
     method: "POST",
     body: JSON.stringify(payload),

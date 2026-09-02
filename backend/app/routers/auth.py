@@ -38,11 +38,12 @@ def register_team(payload: RegisterTeamIn, db: Session = Depends(get_db)):
     db.add(team)
     db.flush()  # assign team.id
 
+    password_hash = hash_password(payload.team_password)
     users = [
         User(
             name=m.name,
             email=m.email.lower(),
-            password_hash=hash_password(m.password),
+            password_hash=password_hash,
             role=UserRole.participant,
             team_id=team.id,
         )
