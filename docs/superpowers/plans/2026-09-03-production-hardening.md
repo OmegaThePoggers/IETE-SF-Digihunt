@@ -1,6 +1,7 @@
 # Production Hardening and Event Readiness Plan
 
-Target: 200 concurrent users on an old Windows 10 laptop, behind Cloudflare Tunnel.
+Target: 200 concurrent users, participants on college WiFi.
+Hosting: Oracle Cloud Always Free VM, per `2026-09-03-oracle-vm-hosting.md`. Read that plan first, since it is a prerequisite for this one.
 Constraints: no regressions, all event data persistent and reachable from the server filesystem, 1GB PPT uploads, working judge flow, no injection surface.
 
 Work is ordered by risk. Phases 1-2 are event-breaking bugs. Phases 3-6 are the requested features. Phase 7 is verification.
@@ -9,12 +10,12 @@ Work is ordered by risk. Phases 1-2 are event-breaking bugs. Phases 3-6 are the 
 
 ## Phase 1 — Fix client IP attribution (event-breaking)
 
-**Problem.** Behind `cloudflared`, every request reaches nginx from the tunnel container's IP. `limit_req_zone $binary_remote_addr` therefore collapses all 200 users into a single bucket. `auth_limit` is `5r/m`, so the sixth login of the whole event gets a 429. The backend limiter repeats the bug via `request.client.host`.
+**Problem.** Requests reach nginx from a proxy or load balancer rather than the end user, so `limit_req_zone $binary_remote_addr` risks collapsing many users into one bucket. `auth_limit` is `5r/m`, which would throttle the whole event. The backend limiter repeats the bug via `request.client.host`. Serving directly from the VM largely avoids this, but the fix is still required so the limiter stays correct if a proxy is ever placed in front.
 
 **Changes.**
 
 1. `deploy/nginx/nginx.conf`
-   - Add a real-IP map. Cloudflare sets `CF-Connecting-IP`:
+   - Add a real-IP map that prefers a proxy-supplied client IP and falls back to the direct peer address, which is the normal case when serving directly from the VM:
      ```nginx
      map $http_cf_connecting_ip $client_ip {
        default   $http_cf_connecting_ip;
@@ -31,7 +32,7 @@ Work is ordered by risk. Phases 1-2 are event-breaking bugs. Phases 3-6 are the 
    - Read the client IP from `X-Forwarded-For` (first hop) when present, else `request.client.host`.
    - Only trust that header when `settings.is_production` is true, so local dev cannot be spoofed into a wrong bucket.
    - Raise `DEFAULT_LIMIT` 60 -> 240/min. With a WebSocket-driven UI, a user still issues bursts on navigation.
-   - Add memory bounding: the `_hits` dict currently grows one entry per `(ip, path)` forever. Add opportunistic eviction of empty deques every N requests. Unbounded growth over a multi-hour event on a low-RAM laptop is a real leak.
+   - Add memory bounding: the `_hits` dict currently grows one entry per `(ip, path)` forever. Add opportunistic eviction of empty deques every N requests. Unbounded growth over a multi-hour event is a real leak.
 
 **Tests.** `backend/tests/test_rate_limit.py`
 - Forwarded IPs get independent buckets in production mode.
@@ -42,7 +43,7 @@ Work is ordered by risk. Phases 1-2 are event-breaking bugs. Phases 3-6 are the 
 
 ## Phase 2 — Stream uploads to disk, raise limit to 1GB (event-breaking)
 
-**Problem.** `submissions.py` accumulates `chunks: list[bytes]` and then joins them. A 1GB upload needs ~2GB of RAM at the join. On an old laptop with several concurrent uploads this OOM-kills the backend.
+**Problem.** `submissions.py` accumulates `chunks: list[bytes]` and then joins them. A 1GB upload needs ~2GB of RAM at the join. With several concurrent uploads this OOM-kills the backend, and the container memory limit makes it certain.
 
 **Changes.**
 
@@ -60,7 +61,7 @@ Work is ordered by risk. Phases 1-2 are event-breaking bugs. Phases 3-6 are the 
    - `/api/submissions` already sets `proxy_request_buffering off`, which is correct and required. Keep it, and raise read/send timeouts to 30m for slow venue uplinks.
 4. Frontend: update any hardcoded "50MB" copy to "1GB".
 
-**Note on Cloudflare.** Free and Pro plans cap upload body size at 100MB. This is a hard external limit that no server-side change can lift. The plan documents it and provides the mitigation: for the presentation round, either require files under 100MB, or have teams upload while on the venue LAN directly to the laptop's nginx port. This must be decided before event day; the deployment doc will state it explicitly rather than letting it surprise you live.
+**Note on the upload path.** Serving directly from the VM means there is no third-party proxy imposing a body-size cap, so 1GB is achievable end to end. If a CDN is ever placed in front, verify its body limit first, since most free plans cap at 100MB.
 
 **Tests.** `backend/tests/test_submissions_upload.py`
 - Oversize upload returns 413 and leaves no file behind.
@@ -72,7 +73,7 @@ Work is ordered by risk. Phases 1-2 are event-breaking bugs. Phases 3-6 are the 
 
 ## Phase 3 — Persistent, server-accessible data
 
-**Goal.** Emails, password hashes, PPTs, and scores survive restarts and are directly reachable on the laptop's filesystem.
+**Goal.** Emails, password hashes, PPTs, and scores survive restarts and are directly reachable on the VM's filesystem.
 
 **Changes.**
 
@@ -80,7 +81,7 @@ Work is ordered by risk. Phases 1-2 are event-breaking bugs. Phases 3-6 are the 
    - `./data/postgres:/var/lib/postgresql/data`
    - `./data/ppts:/data/ppts`
    - `./data/uploads:/data/uploads`
-   Bind mounts make PPTs directly browsable from WSL and from Windows via `\\wsl$`. This is what "accessible on the server side" requires.
+   Bind mounts make PPTs directly browsable over SSH or SFTP on the VM. This is what "accessible on the server side" requires.
 2. Add `data/` to `.gitignore`. Event data must never be committed.
 3. Document the ownership requirement: the backend runs as uid 10001, so `./data/ppts` and `./data/uploads` need `chown 10001:10001`. Postgres runs as uid 999. Getting this wrong is the single most likely first-boot failure, so the deployment doc gets an explicit `mkdir` + `chown` step.
 4. Backup scripts move from `docker run -v <volume>` to plain `tar` over `./data/ppts`, which is simpler and faster.
@@ -110,7 +111,7 @@ Design rules:
 - Every reset writes a line to the app log with the actor, target email, and timestamp. Password resets on a live event system must leave a trail.
 - The CLI reuses `hash_password` and the existing session factory. No parallel auth logic.
 
-**Why not an HTTP route.** An admin-only reset endpoint is one JWT leak away from a full account takeover. A CLI requires shell access to the laptop, which is a much stronger boundary for a one-day event.
+**Why not an HTTP route.** An admin-only reset endpoint is one JWT leak away from a full account takeover. A CLI requires SSH access to the VM, which is a much stronger boundary for a one-day event.
 
 **Tests.** `backend/tests/test_cli.py`
 - `create-user` creates exactly one user with the requested role.
@@ -139,19 +140,20 @@ Is one worker enough? Yes, for this workload. Requests are small ORM reads and w
        pool_pre_ping=True,
    )
    ```
-   `pool_pre_ping` matters because a laptop that sleeps or drops its network will otherwise hand out dead connections after resume.
-2. Postgres tuning for a low-RAM laptop, via compose `command`:
-   `max_connections=100`, `shared_buffers=256MB`, `work_mem=8MB`, `effective_cache_size=768MB`.
+   `pool_pre_ping` matters because it detects connections dropped by a network blip or a database restart before handing them to a request.
+2. Postgres tuning for the 12GB VM, via compose `command`:
+   `max_connections=100`, `shared_buffers=1GB`, `work_mem=16MB`, `effective_cache_size=3GB`.
    Pool ceiling is 40, well under `max_connections`, leaving headroom for migrations, CLI, and psql.
-3. Add container memory limits so one runaway service cannot freeze Windows: db 1g, backend 1g, frontend 512m, nginx 128m.
+3. Add container memory limits so one runaway service cannot starve the others: db 3g, backend 2g, frontend 1g, nginx 256m.
 4. nginx: raise `worker_connections` 1024 -> 4096. Each user needs a WebSocket plus HTTP connections, and nginx holds both the client and the upstream side.
-5. Password hashing is the one real CPU cost. Argon2's default profile is deliberately slow. With 200 users logging in near-simultaneously this serializes badly on old hardware. Lower to an explicit, still-safe profile: `time_cost=2, memory_cost=65536 (64MB), parallelism=1`. Note that existing hashes remain verifiable, since Argon2 encodes its parameters in the hash string, so this change is backward compatible.
+5. Password hashing is the one real CPU cost. Argon2's default profile is deliberately slow, and the VM has only 2 ARM cores, so 200 near-simultaneous logins would serialize badly. Lower to an explicit, still-safe profile: `time_cost=2, memory_cost=65536 (64MB), parallelism=1`. Existing hashes remain verifiable, since Argon2 encodes its parameters in the hash string, so this change is backward compatible.
 
 **Load test.** `scripts/loadtest.py`, standard library only, no new dependency:
 - Registers N synthetic teams.
 - Logs in concurrently, holds WebSockets open, polls boards, answers questions.
 - Reports p50/p95/p99 latency and error rate.
 - Run at 50, then 200, then 250 to find the actual knee.
+- Run it against the VM over the real internet, not over localhost, so TLS handshake and network latency are included.
 - Acceptance: at 200 concurrent, zero 5xx, zero unintended 429, p95 under 1s.
 
 ---
@@ -181,32 +183,26 @@ register team, login, solve round 1, unlock gate 2, solve round 2, gate 3, round
 
 Any non-green step fails the run. This is the acceptance test for "don't break anything".
 
-**Manual, on the event laptop.**
-- Reboot the laptop, confirm the stack self-starts and all data survives.
-- Upload a large PPT over real venue Wi-Fi.
-- Confirm PPT files are visible in `./data/ppts` from Windows Explorer.
+**Manual, on the VM.**
+- Reboot the VM, confirm the stack self-starts and all data survives.
+- Upload a large PPT over a real connection.
+- Confirm PPT files are visible in `./data/ppts` over SSH.
 - Run each CLI command once.
-- Take a backup and rehearse a restore into a scratch stack.
+- Take a backup, copy it off the VM, and rehearse a restore into a scratch stack.
 
 ---
 
 ## Phase 8 — Documentation
 
-1. Rewrite `docs/DEPLOY_WINDOWS_11_CLOUDFLARE.md` as `docs/DEPLOY_WINDOWS_CLOUDFLARE.md`, covering Windows 10 and 11:
-   - Windows 10 requires build 19044 or later for WSL 2 with systemd support. Add the version check up front.
-   - Add `.wslconfig` with an explicit memory and processor cap. Without it, WSL 2 on Windows 10 will happily consume most of RAM and stall the host mid-event.
-   - Add the `mkdir` and `chown` steps for bind-mounted data directories.
-   - Add the Cloudflare 100MB upload cap and its mitigation.
-   - Add power settings: disable sleep, disable hibernate, disable USB selective suspend, disable fast startup.
-   - Add a pre-event load-test step.
-2. Update `docs/OPERATIONS.md`: CLI account commands, bind-mount backup and restore, the one-worker constraint and why, and a rollback procedure.
+1. Replace `docs/DEPLOY_WINDOWS_11_CLOUDFLARE.md` with `docs/DEPLOY_ORACLE_VM.md`, per the hosting plan. It covers provisioning, both firewall layers, Docker install, TLS issuance, bind-mount ownership, and first boot.
+2. Update `docs/OPERATIONS.md`: CLI account commands, SSH access, bind-mount backup and restore, copying backups off the VM, the one-worker constraint and why, and a rollback procedure.
 3. Add `docs/EVENT_DAY_RUNBOOK.md`: a timed checklist for T-24h, T-1h, during, and after the event, including what to do when a team forgets its password mid-round.
 
 ---
 
 ## Execution order
 
-Phases 1 and 2 first, since they are live-event failures. Then 3 and 4, which are the requested features. Then 5, measured with the load test rather than guessed. Then 6, 7, and 8.
+Provision the VM first, per the hosting plan's Gate 0. Then phases 1 and 2, since they are live-event failures. Then 3 and 4, which are the requested features. Then 5, measured with the load test rather than guessed. Then 6, 7, and 8.
 
 Each phase is committed separately with its tests green, so any single phase can be reverted without unwinding the others.
 
@@ -214,8 +210,9 @@ Each phase is committed separately with its tests green, so any single phase can
 
 | Risk | Mitigation |
 |---|---|
-| Cloudflare 100MB body cap blocks 1GB uploads | Decide before event day: cap files at 100MB, or accept LAN-direct uploads |
+| Oracle ARM capacity unavailable at signup | Start a week early, retry across availability domains, fall back to home port forwarding |
+| Oracle host firewall blocks 80/443 despite VCN rules | Explicit iptables step in the deployment doc, verified during rehearsal |
 | Bind-mount ownership wrong on first boot | Explicit `chown` step in the deployment doc, verified during rehearsal |
 | Argon2 retune weakens hashes | Stay at 64MB memory cost, which remains above OWASP's minimum guidance |
 | Load test reveals a knee below 200 | Tune the pool and Postgres first; the frontend is static and cacheable, so the backend is the only real lever |
-| Laptop sleeps mid-event | Power settings plus `pool_pre_ping` for connection recovery |
+| A CDN is later placed in front and caps bodies at 100MB | Keep DNS unproxied; the hosting plan states this explicitly |
