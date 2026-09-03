@@ -4,7 +4,6 @@ export const lockedGateFixture: GateViewModel = {
   state: "locked",
   roundNumber: 2,
   sourceRound: 1,
-  scrambledKey: null,
   hint: null,
   wordLengths: [],
   answer: "",
@@ -15,7 +14,6 @@ export const lockedGateFixture: GateViewModel = {
 export const readyGateFixture: GateViewModel = {
   ...lockedGateFixture,
   state: "ready",
-  scrambledKey: "DIGI-BA-Z7-4Q",
   answer: "DIGI-AB-7Z-4Q",
 };
 

@@ -271,7 +271,6 @@ export interface GateStatusOut {
   source_round: number;
   ready: boolean;
   unlocked: boolean;
-  scrambled_key: string | null;
   hint: string | null;
   word_lengths: number[];
   attempts: number;

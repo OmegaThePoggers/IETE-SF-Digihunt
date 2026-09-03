@@ -57,11 +57,8 @@ export function GateView({ model, onChangeKey, onSubmit, onBack }: GateViewProps
 
         {model.state === "ready" || model.state === "submitting" || model.state === "rejected" ? (
           <EventPanel>
-            <p className="mb-3 font-mono-data text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Scrambled key
-            </p>
-            <p className="glow-lime mb-6 break-all font-mono-data text-3xl font-bold tracking-widest text-secondary">
-              {model.scrambledKey}
+            <p className="mb-4 font-mono-data text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              Review Round {model.sourceRound} to collect the recovered letters.
             </p>
 
             {model.wordLengths.length > 0 ? (

@@ -4,7 +4,6 @@ export type GateViewModel = {
   state: GateState;
   roundNumber: number;
   sourceRound: number;
-  scrambledKey: string | null;
   hint: string | null;
   wordLengths: number[];
   answer: string;

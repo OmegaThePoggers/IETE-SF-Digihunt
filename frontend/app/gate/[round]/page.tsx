@@ -137,7 +137,6 @@ export default function GatePage() {
       state: stateName,
       roundNumber,
       sourceRound: status?.source_round ?? roundNumber - 1,
-      scrambledKey: status?.scrambled_key ?? null,
       hint: status?.hint ?? null,
       wordLengths: status?.word_lengths ?? [],
       answer: state.answer,
