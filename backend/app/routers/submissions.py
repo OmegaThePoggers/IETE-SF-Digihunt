@@ -8,7 +8,9 @@ default behavior until G8's admin panel sets one, not a bug.
 """
 
 import json
+import os
 import re
+import tempfile
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,8 +35,16 @@ ALLOWED_MIME_TYPES = {
     "application/vnd.ms-powerpoint",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 }
-# ponytail: hardcoded, make admin-configurable via event_settings when that panel exists
-MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50MB
+
+
+def _max_upload_bytes() -> int:
+    return settings.max_upload_bytes
+
+
+def _human_size(num_bytes: int) -> str:
+    if num_bytes >= 1024**3:
+        return f"{num_bytes // 1024**3}GB"
+    return f"{num_bytes // 1024**2}MB"
 
 _UNSAFE_CHARS = re.compile(r"[^A-Za-z0-9_.-]+")
 
@@ -99,22 +109,6 @@ async def upload_submission(
             "File content-type is not a valid PowerPoint type",
         )
 
-    # Stream-check size rather than reading the whole body first, so an
-    # oversized upload is rejected without buffering it all in memory.
-    chunks: list[bytes] = []
-    total = 0
-    while True:
-        chunk = await file.read(1024 * 1024)
-        if not chunk:
-            break
-        total += len(chunk)
-        if total > MAX_UPLOAD_BYTES:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, "File exceeds the 50MB size limit"
-            )
-        chunks.append(chunk)
-    content = b"".join(chunks)
-
     team_id = user.team_id
     team = db.get(Team, team_id)
     if db.scalar(
@@ -151,7 +145,38 @@ async def upload_submission(
     # ppt_dir before writing anything to disk.
     if ppt_dir.resolve() not in dest_path.resolve().parents:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid file name")
-    dest_path.write_bytes(content)
+
+    # Stream to a temp file inside ppt_dir rather than accumulating the body
+    # in memory. A 1GB upload buffered in RAM (and then joined into a single
+    # bytes object) needs roughly twice that at peak and will OOM the
+    # container. Creating the temp file in the destination directory keeps
+    # the final os.replace on one filesystem, so it is an atomic rename
+    # rather than a copy.
+    limit = _max_upload_bytes()
+    total = 0
+    tmp_fd, tmp_name = tempfile.mkstemp(dir=ppt_dir, suffix=".part")
+    try:
+        with os.fdopen(tmp_fd, "wb") as tmp:
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                total += len(chunk)
+                if total > limit:
+                    raise HTTPException(
+                        status.HTTP_413_CONTENT_TOO_LARGE,
+                        f"File exceeds the {_human_size(limit)} size limit",
+                    )
+                tmp.write(chunk)
+        os.replace(tmp_name, dest_path)
+    except BaseException:
+        # Any failure (oversize, disconnect, disk error) must not leave a
+        # partial .part file behind.
+        try:
+            os.unlink(tmp_name)
+        except FileNotFoundError:
+            pass
+        raise
 
     submission = Submission(
         team_id=team_id,

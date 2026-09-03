@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     ppt_directory: str = "../ppts"
     cors_origins: list[str] = ["http://localhost:3000"]
     access_token_expire_minutes: int = 480
+    # 1GB. Storage is not a constraint; RAM is, which is why the upload path
+    # streams to disk rather than buffering.
+    max_upload_bytes: int = 1024 * 1024 * 1024
     enable_api_docs: bool | None = None
 
     @field_validator("jwt_secret")
