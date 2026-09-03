@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -23,14 +23,13 @@ describe("GateView", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
-  it("lists recovered fragments in key order", () => {
-    render(<GateView model={{ ...readyGateFixture, fragments: ["K7", "M2"] }} onChangeKey={vi.fn()} onSubmit={vi.fn()} onBack={vi.fn()} />);
+  it("presents anagram letters with a hint and answer shape", () => {
+    render(<GateView model={{ ...readyGateFixture, scrambledKey: "IPHSHIGNAPYLDAO", hint: "The bait arrived as an attachment.", wordLengths: [8, 7] }} onChangeKey={vi.fn()} onSubmit={vi.fn()} onBack={vi.fn()} />);
 
-    const list = screen.getByRole("list", { name: /recovered fragments/i });
-    expect(within(list).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-      "1. K7",
-      "2. M2",
-    ]);
+    expect(screen.getByText("IPHSHIGNAPYLDAO")).toBeInTheDocument();
+    expect(screen.getByText(/the bait arrived as an attachment/i)).toBeInTheDocument();
+    expect(screen.getByText("8 · 7")).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: /recovered fragments/i })).not.toBeInTheDocument();
   });
 
   it("confirms an unlocked gate and offers the next round", () => {

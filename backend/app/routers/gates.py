@@ -14,7 +14,13 @@ from app.core.deps import get_current_user
 from app.models import RoundKeyAttempt, RoundUnlock, Team, User
 from app.schemas.gate import GateStatusOut, GateUnlockIn, GateUnlockOut
 from app.services.round_gate import ROUND_COUNT, requires_gate
-from app.services.round_key import keys_match, plaintext_key, scramble_key
+from app.services.round_key import (
+    key_hint,
+    keys_match,
+    plaintext_key,
+    scramble_key,
+    word_lengths,
+)
 from app.websocket.manager import broadcast_from_sync
 
 router = APIRouter(prefix="/gates", tags=["gates"])
@@ -76,6 +82,8 @@ def get_gate(
             if plain is not None and not unlocked
             else None
         ),
+        hint=key_hint(team.team_code, source_round) if plain is not None and not unlocked else None,
+        word_lengths=word_lengths(plain) if plain is not None and not unlocked else [],
         attempts=attempts or 0,
     )
 

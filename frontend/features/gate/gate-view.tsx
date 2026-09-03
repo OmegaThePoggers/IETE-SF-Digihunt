@@ -29,7 +29,7 @@ export function GateView({ model, onChangeKey, onSubmit, onBack }: GateViewProps
         description={
           model.state === "unlocked"
             ? `Round ${model.roundNumber} is now unlocked.`
-            : `Solve Round ${model.sourceRound} to receive its cipher key, then unscramble it below.`
+            : `Solve Round ${model.sourceRound} to recover the letters, then solve the themed anagram below.`
         }
         actions={
           <Button variant="outline" onClick={onBack}>
@@ -64,15 +64,12 @@ export function GateView({ model, onChangeKey, onSubmit, onBack }: GateViewProps
               {model.scrambledKey}
             </p>
 
-            {model.fragments.length > 0 ? (
-              <div className="mb-6">
-                <p className="mb-3 font-mono-data text-xs uppercase tracking-[0.2em] text-muted-foreground">Recovered fragments</p>
-                <ol aria-label="Recovered fragments" className="grid gap-2 sm:grid-cols-2">
-                  {model.fragments.map((fragment, index) => (
-                    <li key={`${index}-${fragment}`} className="border border-border px-3 py-2 font-mono-data text-sm text-primary">{index + 1}. {fragment}</li>
-                  ))}
-                </ol>
-              </div>
+            {model.wordLengths.length > 0 ? (
+              <p className="mb-4 font-mono-data text-xs uppercase tracking-[0.2em] text-muted-foreground">Answer shape · <span className="text-primary">{model.wordLengths.join(" · ")}</span></p>
+            ) : null}
+
+            {model.hint ? (
+              <p className="mb-6 border-l-2 border-secondary pl-4 text-sm leading-6 text-muted-foreground">{model.hint}</p>
             ) : null}
 
             <label htmlFor="gate-key-input" className="mb-2 block font-mono-data text-xs uppercase tracking-[0.16em] text-muted-foreground">

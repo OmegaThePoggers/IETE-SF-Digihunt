@@ -528,6 +528,16 @@ def assign_round(
             db.add(tq)
             team_questions.append(tq)
 
+    from app.services.key_phrases import phrase_for_round
+    from app.services.round_key import fragments_for_phrase
+
+    phrase, _hint = phrase_for_round(team.team_code, round_number)
+    for tq, fragment in zip(
+        team_questions,
+        fragments_for_phrase(phrase, team.team_code, len(team_questions)),
+    ):
+        tq.question.code_fragment = fragment
+
     db.commit()
     for tq in team_questions:
         db.refresh(tq)

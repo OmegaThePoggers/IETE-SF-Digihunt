@@ -156,11 +156,11 @@ export function Round1View({ model, onBack, onOpenGate, onOpen, onClaim, onSelec
             {model.state === "teammate-claimed" && current?.claimedByName ? `Owned by ${current.claimedByName}` : model.state.replace("-", " ")}
           </StatusStrip>
           <EventPanel variant="muted">
-            <h2 className="font-mono-data mb-4 text-xs tracking-[0.16em] uppercase text-muted-foreground">Recovered fragments</h2>
+            <h2 className="font-mono-data mb-4 text-xs tracking-[0.16em] uppercase text-muted-foreground">Recovered letters</h2>
             <div className="space-y-3">
-              {model.clues.filter((clue) => clue.status === "solved").map((clue, index) => (
+              {model.clues.filter((clue) => clue.status === "solved").map((clue) => (
                 <div key={clue.id} className="flex justify-between gap-3 border-b border-border pb-2 text-xs">
-                  <span className="text-muted-foreground">{index + 1}. {labelCategory(clue)}</span>
+                  <span className="text-muted-foreground">{labelCategory(clue)}</span>
                   <span className="font-mono-data text-primary">{clue.codeFragment}</span>
                 </div>
               ))}

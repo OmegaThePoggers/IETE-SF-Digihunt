@@ -89,7 +89,7 @@ describe("Round2View", () => {
     expect(screen.getByRole("tab", { name: /server log/i })).toHaveFocus();
   });
 
-  it("reveals each solved fragment and lists them in recovery order", () => {
+  it("reveals solved letters without implying their order", () => {
     const model = {
       ...completeRound2Fixture,
       questions: completeRound2Fixture.questions.map((question, index) => ({
@@ -100,8 +100,10 @@ describe("Round2View", () => {
 
     render(<Round2View model={model} {...callbacks()} />);
 
-    expect(screen.getByRole("region", { name: /recovered fragments/i })).toHaveTextContent("K7");
-    expect(screen.getByRole("region", { name: /recovered fragments/i })).toHaveTextContent("M2");
+    const recovered = screen.getByRole("region", { name: /recovered letters/i });
+    expect(recovered).toHaveTextContent("K7");
+    expect(recovered).toHaveTextContent("M2");
+    expect(recovered).not.toHaveTextContent("1. WHO");
     expect(screen.getAllByText(/^✓ [A-Z0-9]{2}$/).length).toBeGreaterThan(0);
   });
 

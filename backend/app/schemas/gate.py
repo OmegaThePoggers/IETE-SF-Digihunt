@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class GateStatusOut(BaseModel):
@@ -7,6 +7,8 @@ class GateStatusOut(BaseModel):
     ready: bool                # source round fully solved
     unlocked: bool             # already solved
     scrambled_key: str | None  # shown only when ready and not yet unlocked
+    hint: str | None = None
+    word_lengths: list[int] = Field(default_factory=list)
     attempts: int
 
 
