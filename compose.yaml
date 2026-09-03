@@ -31,6 +31,7 @@ services:
       PPT_DIRECTORY: /data/ppts
       CORS_ORIGINS: '["${FRONTEND_ORIGIN:-http://localhost:3000}"]'
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-1073741824}
     depends_on:
       db:
         condition: service_healthy

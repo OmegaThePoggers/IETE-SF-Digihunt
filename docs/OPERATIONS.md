@@ -1,3 +1,5 @@
+> **EVENT DAY UPDATE:** Follow `docs/EVENT_DAY_RUNBOOK.md` for today. This older document remains for background only.
+
 # Production Operations Runbook
 
 Use this with `docs/DEPLOY_WINDOWS_11_CLOUDFLARE.md`.

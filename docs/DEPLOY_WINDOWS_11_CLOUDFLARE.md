@@ -1,3 +1,5 @@
+> **EVENT DAY UPDATE:** Follow `docs/EVENT_DAY_RUNBOOK.md` for today. This older document remains for background only.
+
 # Windows 11 Laptop Production Deployment
 
 This guide turns an old Windows 11 laptop into the DigiHunt event server using Docker, Nginx, and Cloudflare Tunnel. It uses one public hostname, for example `hunt.example.com`, and needs no router port forwarding.

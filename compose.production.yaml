@@ -35,6 +35,7 @@ services:
       PPT_DIRECTORY: /data/ppts
       CORS_ORIGINS: '["https://${PUBLIC_HOSTNAME}"]'
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-1073741824}
     secrets:
       - jwt_secret
       - postgres_password
@@ -62,6 +63,7 @@ services:
       PPT_DIRECTORY: /data/ppts
       CORS_ORIGINS: '["https://${PUBLIC_HOSTNAME}"]'
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-1073741824}
     secrets:
       - jwt_secret
       - postgres_password
