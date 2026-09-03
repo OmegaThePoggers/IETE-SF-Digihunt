@@ -5,6 +5,7 @@ export const lockedGateFixture: GateViewModel = {
   roundNumber: 2,
   sourceRound: 1,
   scrambledKey: null,
+  fragments: [],
   answer: "",
   attempts: 0,
   message: null,

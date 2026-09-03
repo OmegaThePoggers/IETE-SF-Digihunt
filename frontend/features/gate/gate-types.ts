@@ -5,6 +5,7 @@ export type GateViewModel = {
   roundNumber: number;
   sourceRound: number;
   scrambledKey: string | null;
+  fragments: string[];
   answer: string;
   attempts: number;
   message: string | null;

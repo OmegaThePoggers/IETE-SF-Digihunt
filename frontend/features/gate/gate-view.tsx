@@ -64,6 +64,17 @@ export function GateView({ model, onChangeKey, onSubmit, onBack }: GateViewProps
               {model.scrambledKey}
             </p>
 
+            {model.fragments.length > 0 ? (
+              <div className="mb-6">
+                <p className="mb-3 font-mono-data text-xs uppercase tracking-[0.2em] text-muted-foreground">Recovered fragments</p>
+                <ol aria-label="Recovered fragments" className="grid gap-2 sm:grid-cols-2">
+                  {model.fragments.map((fragment, index) => (
+                    <li key={`${index}-${fragment}`} className="border border-border px-3 py-2 font-mono-data text-sm text-primary">{index + 1}. {fragment}</li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
+
             <label htmlFor="gate-key-input" className="mb-2 block font-mono-data text-xs uppercase tracking-[0.16em] text-muted-foreground">
               Unscrambled key
             </label>

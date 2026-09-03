@@ -8,6 +8,7 @@ import { useTeamSocket } from "@/hooks/useTeamSocket";
 import {
   ApiError,
   getGate,
+  getRoundBoard,
   getStoredToken,
   unlockGate,
   type GateStatusOut,
@@ -15,6 +16,7 @@ import {
 
 type ControllerState = {
   status: GateStatusOut | null;
+  fragments: string[];
   answer: string;
   submitting: boolean;
   message: string | null;
@@ -23,7 +25,7 @@ type ControllerState = {
 };
 
 type ControllerAction =
-  | { type: "status"; status: GateStatusOut }
+  | { type: "status"; status: GateStatusOut; fragments: string[] }
   | { type: "answer"; value: string }
   | { type: "submitting"; submitting: boolean }
   | { type: "result"; correct: boolean; message: string; unlocked: boolean }
@@ -31,6 +33,7 @@ type ControllerAction =
 
 const initialState: ControllerState = {
   status: null,
+  fragments: [],
   answer: "",
   submitting: false,
   message: null,
@@ -44,6 +47,7 @@ function reducer(state: ControllerState, action: ControllerAction): ControllerSt
       return {
         ...state,
         status: action.status,
+        fragments: action.fragments,
         attempts: action.status.attempts,
         error: null,
       };
@@ -72,7 +76,16 @@ export default function GatePage() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      dispatch({ type: "status", status: await getGate(roundNumber) });
+      const status = await getGate(roundNumber);
+      const board = await getRoundBoard(roundNumber - 1).catch(() => null);
+      dispatch({
+        type: "status",
+        status,
+        fragments: board?.questions
+          .filter((question) => question.status === "solved")
+          .map((question) => question.code_fragment)
+          .filter((fragment): fragment is string => Boolean(fragment)) ?? [],
+      });
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
         router.replace("/login");
@@ -138,6 +151,7 @@ export default function GatePage() {
       roundNumber,
       sourceRound: status?.source_round ?? roundNumber - 1,
       scrambledKey: status?.scrambled_key ?? null,
+      fragments: state.fragments,
       answer: state.answer,
       attempts: state.attempts,
       message:

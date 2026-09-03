@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -21,6 +21,16 @@ describe("GateView", () => {
     expect(screen.getByText(readyGateFixture.scrambledKey!)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /unlock round 2/i }));
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("lists recovered fragments in key order", () => {
+    render(<GateView model={{ ...readyGateFixture, fragments: ["K7", "M2"] }} onChangeKey={vi.fn()} onSubmit={vi.fn()} onBack={vi.fn()} />);
+
+    const list = screen.getByRole("list", { name: /recovered fragments/i });
+    expect(within(list).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "1. K7",
+      "2. M2",
+    ]);
   });
 
   it("confirms an unlocked gate and offers the next round", () => {
