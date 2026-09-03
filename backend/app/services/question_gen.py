@@ -490,6 +490,7 @@ def assign_round(
 
     rng = seeded_rng(team.team_code)
     team_questions: list[TeamQuestion] = []
+    generated_questions: list[Question] = []
 
     for category, count in blueprint:
         generator = GENERATORS[category]
@@ -519,6 +520,7 @@ def assign_round(
             )
             db.add(question)
             db.flush()
+            generated_questions.append(question)
 
             tq = TeamQuestion(
                 team_id=team.id,
@@ -532,11 +534,11 @@ def assign_round(
     from app.services.round_key import fragments_for_phrase
 
     phrase, _hint = phrase_for_round(team.team_code, round_number)
-    for tq, fragment in zip(
-        team_questions,
-        fragments_for_phrase(phrase, team.team_code, len(team_questions)),
+    for question, fragment in zip(
+        generated_questions,
+        fragments_for_phrase(phrase, team.team_code, len(generated_questions)),
     ):
-        tq.question.code_fragment = fragment
+        question.code_fragment = fragment
 
     db.commit()
     for tq in team_questions:
