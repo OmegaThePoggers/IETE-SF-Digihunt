@@ -37,3 +37,4 @@ graphify-out/
 # os
 .DS_Store
 Thumbs.db
+data/
