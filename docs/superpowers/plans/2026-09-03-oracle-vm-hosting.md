@@ -1,3 +1,5 @@
+> **SUPERSEDED.** The event is today. Follow `2026-09-03-event-day-plan.md` instead. This document is retained for post-event work.
+
 # Public Hosting Plan: Oracle Cloud Always Free VM
 
 Replaces the Windows laptop + Cloudflare Tunnel deployment. The entire stack moves to a permanently free Oracle Cloud VM with a real public IP.

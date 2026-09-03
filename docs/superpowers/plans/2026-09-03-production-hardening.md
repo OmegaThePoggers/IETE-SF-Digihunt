@@ -1,3 +1,5 @@
+> **SUPERSEDED.** The event is today. Follow `2026-09-03-event-day-plan.md` instead. This document is retained for post-event work.
+
 # Production Hardening and Event Readiness Plan
 
 Target: 200 concurrent users, participants on college WiFi.
