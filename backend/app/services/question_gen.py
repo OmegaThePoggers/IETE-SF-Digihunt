@@ -49,9 +49,15 @@ def seeded_rng(team_code: str) -> random.Random:
     return random.Random(team_seed(team_code))
 
 
+# Mono display fonts render O/0 and I/1 nearly identically, which makes a
+# visually correct cipher key look rejected.
+FRAGMENT_ALPHABET = "".join(
+    ch for ch in string.ascii_uppercase + string.digits if ch not in "O0I1"
+)
+
+
 def _fragment(rng: random.Random, length: int = 2) -> str:
-    alphabet = string.ascii_uppercase + string.digits
-    return "".join(rng.choice(alphabet) for _ in range(length))
+    return "".join(rng.choice(FRAGMENT_ALPHABET) for _ in range(length))
 
 
 # ---- templated generator (proves the QuestionTemplate mechanism) ----------
