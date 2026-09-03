@@ -2,8 +2,12 @@ services:
   nginx:
     ports:
       - "80:80"
-    # Docker Desktop/WSL needs this because the official nginx entrypoint
-    # chowns /tmp/client_temp before starting. Production still drops all
-    # other capabilities in compose.production.yaml.
+    # Laptop/Docker Desktop override: the official nginx image needs normal
+    # startup privileges to chown temp dirs and switch worker user. The stricter
+    # production cap_drop settings can make nginx bind but hang/crash in WSL.
+    cap_drop: []
     cap_add:
+      - NET_BIND_SERVICE
       - CHOWN
+      - SETUID
+      - SETGID
