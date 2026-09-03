@@ -6,6 +6,7 @@ This is the current same-day deployment runbook. It supersedes the older Oracle/
 
 - Primary: Cloudflare Tunnel when available.
 - Backup: LAN-direct to nginx on the same stack, or home router port-forward if participants are remote.
+- Windows 10 laptop host: follow `docs/DEPLOY_WINDOWS_11_CLOUDFLARE.md`, especially the `compose.laptop.yaml` LAN override for same-WiFi access and large PPT uploads.
 - Do not migrate hosts on event day.
 
 ## Start or update
