@@ -89,6 +89,22 @@ describe("Round2View", () => {
     expect(screen.getByRole("tab", { name: /server log/i })).toHaveFocus();
   });
 
+  it("reveals each solved fragment and lists them in recovery order", () => {
+    const model = {
+      ...completeRound2Fixture,
+      questions: completeRound2Fixture.questions.map((question, index) => ({
+        ...question,
+        codeFragment: index === 0 ? "K7" : index === 1 ? "M2" : "P9",
+      })),
+    };
+
+    render(<Round2View model={model} {...callbacks()} />);
+
+    expect(screen.getByRole("region", { name: /recovered fragments/i })).toHaveTextContent("K7");
+    expect(screen.getByRole("region", { name: /recovered fragments/i })).toHaveTextContent("M2");
+    expect(screen.getAllByText(/^✓ [A-Z0-9]{2}$/).length).toBeGreaterThan(0);
+  });
+
   it("keeps completed MCQ answers visible but immutable", () => {
     render(<Round2View model={completeRound2Fixture} {...callbacks()} />);
 

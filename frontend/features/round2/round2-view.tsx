@@ -26,7 +26,7 @@ export type Round2ViewProps = {
 };
 
 function QuestionCard({ q, mine, onClaim, onSelect, onSubmit, onRelease }: { q: Round2Question; mine: boolean } & Pick<Round2ViewProps, "onClaim" | "onSelect" | "onSubmit" | "onRelease">) {
-  if (q.status === "solved") return <div className="flex justify-between border-l-2 border-border py-3 pl-4 text-sm opacity-60"><span>{q.label}</span><span className="font-mono-data text-primary">✓ SOLVED</span></div>;
+  if (q.status === "solved") return <div className="flex justify-between border-l-2 border-border py-3 pl-4 text-sm opacity-60"><span>{q.label}</span><span className="font-mono-data text-primary">✓ {q.codeFragment ?? "SOLVED"}</span></div>;
   if (q.status === "claimed" && !mine) return <div className="flex justify-between border-l-2 border-border py-3 pl-4 text-sm opacity-60"><span>{q.label}</span><span className="font-mono-data text-muted-foreground">Being investigated by {q.claimedByName ?? "a teammate"}</span></div>;
   if (q.status === "available") return <button type="button" className="flex w-full justify-between border-l-2 border-border py-3 pl-4 text-left text-sm hover:border-secondary" onClick={() => onClaim(q.id)} disabled={q.busy}><span>{q.label} · {q.difficulty}</span><span className="font-mono-data">Claim {q.label}</span></button>;
 
@@ -64,6 +64,7 @@ export function Round2View({ model, onBack, onOpenGate, onBackToRound1, onEviden
       <section className="space-y-5">
         <ProgressRail aria-label="Progress trail" steps={model.questions.map((q) => ({ id: q.id, label: q.label, status: q.status === "solved" ? "complete" : q.status === "claimed" ? "active" : "upcoming" }))} />
         {model.state === "complete" && model.summary ? <EventPanel><h2 className="font-heading mb-4 text-2xl font-bold uppercase">Investigation summary</h2><div className="grid gap-2 sm:grid-cols-2">{Object.entries(model.summary).map(([k, v]) => <p key={k}><span className="font-mono-data text-secondary">{k.toUpperCase()}:</span> {v}</p>)}</div></EventPanel> : null}
+        <EventPanel variant="muted" aria-label="Recovered fragments"><h2 className="font-mono-data mb-4 text-xs tracking-[0.16em] uppercase text-muted-foreground">Recovered fragments</h2><div className="space-y-3">{model.questions.filter((q) => q.status === "solved").map((q, index) => <div key={q.id} className="flex justify-between gap-3 border-b border-border pb-2 text-xs"><span className="text-muted-foreground">{index + 1}. {q.label}</span><span className="font-mono-data text-primary">{q.codeFragment}</span></div>)}{solved === 0 ? <p className="text-sm text-muted-foreground">No fragments recovered yet.</p> : null}</div></EventPanel>
         <EventPanel><p className="mb-4 font-mono-data text-xs tracking-[0.16em] uppercase text-muted-foreground">Investigation questions</p><div className="space-y-2">{model.questions.map((q) => <QuestionCard key={q.id} q={q} mine={q.claimedByName === model.meName} onClaim={onClaim} onSelect={onSelect} onSubmit={onSubmit} onRelease={onRelease} />)}</div></EventPanel>
       </section>
     </div>

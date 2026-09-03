@@ -19,6 +19,7 @@ export type Round2Question = {
   options: string[];
   status: Round2QuestionStatus;
   claimedByName: string | null;
+  codeFragment: string | null;
   selectedAnswer: string;
   busy: boolean;
   feedback: { correct: boolean; message: string } | null;

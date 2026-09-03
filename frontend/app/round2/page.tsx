@@ -16,7 +16,7 @@ function toEvidence(incident: IncidentOut | null) {
 }
 
 function toQuestion(q: QuestionBoardItem, selected: Record<string, string>, busy: Record<string, boolean>, feedback: Record<string, { correct: boolean; message: string }>): Round2Question {
-  return { id: q.team_question_id, category: q.category, label: CATEGORY_LABEL[q.category] ?? q.category.toUpperCase(), difficulty: q.difficulty, questionText: q.question_text, options: q.options ?? [], status: q.status, claimedByName: q.claimed_by_name, selectedAnswer: selected[q.team_question_id] ?? "", busy: !!busy[q.team_question_id], feedback: feedback[q.team_question_id] ?? null };
+  return { id: q.team_question_id, category: q.category, label: CATEGORY_LABEL[q.category] ?? q.category.toUpperCase(), difficulty: q.difficulty, questionText: q.question_text, options: q.options ?? [], status: q.status, claimedByName: q.claimed_by_name, codeFragment: q.code_fragment, selectedAnswer: selected[q.team_question_id] ?? "", busy: !!busy[q.team_question_id], feedback: feedback[q.team_question_id] ?? null };
 }
 
 export default function Round2Page() {

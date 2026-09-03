@@ -16,9 +16,9 @@ const evidence = {
 };
 
 const questions = [
-  { id: "q-who", category: "who", label: "WHO", difficulty: "medium", questionText: "Who is most likely behind the breach?", options: ["External botnet", "Malicious insider", "Lost device", "Vendor outage"], status: "available" as const, claimedByName: null, selectedAnswer: "", busy: false, feedback: null },
-  { id: "q-what", category: "what", label: "WHAT", difficulty: "hard", questionText: "What attack path matches the evidence?", options: ["SQL injection", "Stale token replay", "DNS poisoning", "Credential stuffing"], status: "claimed" as const, claimedByName: "Asha", selectedAnswer: "", busy: false, feedback: null },
-  { id: "q-when", category: "when", label: "WHEN", difficulty: "easy", questionText: "When did the incident begin?", options: ["09:55", "10:12", "10:20", "11:45"], status: "solved" as const, claimedByName: "Asha", selectedAnswer: "09:55", busy: false, feedback: { correct: true, message: "Timeline anchored." } },
+  { id: "q-who", category: "who", label: "WHO", difficulty: "medium", questionText: "Who is most likely behind the breach?", options: ["External botnet", "Malicious insider", "Lost device", "Vendor outage"], status: "available" as const, claimedByName: null, codeFragment: null, selectedAnswer: "", busy: false, feedback: null },
+  { id: "q-what", category: "what", label: "WHAT", difficulty: "hard", questionText: "What attack path matches the evidence?", options: ["SQL injection", "Stale token replay", "DNS poisoning", "Credential stuffing"], status: "claimed" as const, claimedByName: "Asha", codeFragment: null, selectedAnswer: "", busy: false, feedback: null },
+  { id: "q-when", category: "when", label: "WHEN", difficulty: "easy", questionText: "When did the incident begin?", options: ["09:55", "10:12", "10:20", "11:45"], status: "solved" as const, claimedByName: "Asha", codeFragment: null, selectedAnswer: "09:55", busy: false, feedback: { correct: true, message: "Timeline anchored." } },
 ];
 
 export const loadingRound2Fixture: Round2ViewModel = { state: "loading", meName: null, evidence: null, activeEvidenceId: "log", questions: [], summary: null, error: null };
