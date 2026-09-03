@@ -2,3 +2,8 @@ services:
   nginx:
     ports:
       - "80:80"
+    # Docker Desktop/WSL needs this because the official nginx entrypoint
+    # chowns /tmp/client_temp before starting. Production still drops all
+    # other capabilities in compose.production.yaml.
+    cap_add:
+      - CHOWN
